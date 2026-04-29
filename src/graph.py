@@ -17,6 +17,13 @@ load_dotenv()
 LLM_MODEL = os.environ.get("LLM_MODEL", "qwen2.5:32b")
 OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
 
+_FILTER_PROMPT = ChatPromptTemplate.from_template(
+    "Is the following question related to Sherlock Holmes stories, characters, or plots? "
+    "Answer with a single word: yes or no.\n\nQuestion: {question}"
+)
+
+_OFF_TOPIC_ANSWER = "I can only answer questions about Sherlock Holmes stories."
+
 _REWRITE_PROMPT = ChatPromptTemplate.from_template(
     "Given the conversation history below, rewrite the follow-up question as a "
     "fully self-contained question that can be understood without the history. "
@@ -39,6 +46,19 @@ _ANSWER_PROMPT = ChatPromptTemplate.from_template(
     "Context:\n{context}\n\n"
     "Question: {question}"
 )
+
+
+def _filter(state: RAGState) -> RAGState:
+    llm = ChatOllama(model=LLM_MODEL, base_url=OLLAMA_HOST)
+    chain = _FILTER_PROMPT | llm | StrOutputParser()
+    verdict = chain.invoke({"question": state["question"]}).strip().lower()
+    if not verdict.startswith("yes"):
+        return {"answer": _OFF_TOPIC_ANSWER}
+    return {}
+
+
+def _is_off_topic(state: RAGState) -> str:
+    return "off_topic" if state.get("answer") else "on_topic"
 
 
 def _rewrite(state: RAGState) -> RAGState:
@@ -88,11 +108,13 @@ def build_graph():
     # MemorySaver persists state in RAM across turns within a thread.
     # To persist across app restarts, swap for PostgresSaver — one line change.
     g = StateGraph(RAGState)
+    g.add_node("filter", _filter)
     g.add_node("rewrite", _rewrite)
     g.add_node("hypothesize", _hypothesize)
     g.add_node("retrieve", _retrieve)
     g.add_node("generate", _generate)
-    g.add_edge(START, "rewrite")
+    g.add_edge(START, "filter")
+    g.add_conditional_edges("filter", _is_off_topic, {"off_topic": END, "on_topic": "rewrite"})
     g.add_edge("rewrite", "hypothesize")
     g.add_edge("hypothesize", "retrieve")
     g.add_edge("retrieve", "generate")
@@ -139,7 +161,9 @@ def stream_answer(
         stream_mode=["messages", "updates"],
     ):
         if mode == "updates":
-            if "rewrite" in data:
+            if "filter" in data and data["filter"].get("answer"):
+                yield ("token", data["filter"]["answer"])
+            elif "rewrite" in data:
                 yield ("standalone", data["rewrite"]["standalone_question"])
             elif "hypothesize" in data:
                 yield ("hypothesis", data["hypothesize"]["hypothesis"])

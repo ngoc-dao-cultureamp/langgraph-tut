@@ -12,8 +12,8 @@ def _graph():
     return build_graph()
 
 
-st.set_page_config(page_title="Sherlock Holmes", layout="wide")
-st.title("Sherlock Holmes")
+st.set_page_config(page_title="Sherlock Holmes stories", layout="wide")
+st.title("Sherlock Holmes stories")
 
 # --- Sidebar ---
 with st.sidebar:
@@ -77,7 +77,7 @@ with chat_tab:
                 st.markdown(msg["content"])
 
     # Chat input sits below the scrollable area
-    if question := st.chat_input("Ask about Sherlock Holmes..."):
+    if question := st.chat_input("Ask about Sherlock Holmes stories..."):
         st.session_state.messages.append({"role": "user", "content": question})
 
         standalone = ""
