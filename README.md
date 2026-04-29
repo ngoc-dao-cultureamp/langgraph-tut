@@ -5,7 +5,6 @@ A minimal RAG app using LangGraph, PostgreSQL + pgvector, Ollama, and Streamlit.
 ## Prerequisites
 
 - [Devbox](https://www.jetify.com/devbox)
-- [Ollama](https://ollama.com)
 
 ## Setup
 
@@ -23,10 +22,21 @@ devbox run db-init
 
 This creates a local PostgreSQL 17 instance in `.pgdata/`, creates the `ragdb` database, and enables the `pgvector` extension.
 
-### 3. Start the database
+### 3. Pull Ollama models (first time only)
+
+```bash
+devbox run ollama-pull
+```
+
+This pulls `snowflake-arctic-embed2` (embedding model) and `qwen2.5:32b` (LLM).
+
+`qwen2.5:32b` runs well on both M3 Max (36GB) and RTX 3090 (24GB VRAM).
+
+### 4. Start the database and Ollama
 
 ```bash
 devbox run db-start
+devbox run ollama-start
 ```
 
 ## Database commands
@@ -47,6 +57,13 @@ devbox run db-start
 | User | `postgres` |
 | Database | `ragdb` |
 | URL | `postgresql://postgres@localhost:5432/ragdb` |
+
+## Ollama commands
+
+| Command | Description |
+|---|---|
+| `devbox run ollama-start` | Start Ollama server in background |
+| `devbox run ollama-pull` | Pull embedding model + LLM (first time only) |
 
 ## Stack
 

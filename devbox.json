@@ -1,14 +1,18 @@
 {
-  "$schema":  "https://raw.githubusercontent.com/jetify-com/devbox/0.17.2/.schema/devbox.schema.json",
-  "packages": ["python@3.12", "path:.#default"],
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.17.2/.schema/devbox.schema.json",
+  "packages": [
+    "python@3.12",
+    "path:.#default",
+    "ollama@latest"
+  ],
   "shell": {
     "init_hook": [
       ". $VENV_DIR/bin/activate"
     ],
     "env": {
-      "PGDATA": "$PWD/.pgdata",
-      "PGHOST": "localhost",
-      "PGUSER": "postgres",
+      "PGDATA":     "$PWD/.pgdata",
+      "PGHOST":     "localhost",
+      "PGUSER":     "postgres",
       "PGDATABASE": "ragdb"
     },
     "scripts": {
@@ -19,9 +23,11 @@
         "createdb -U postgres ragdb",
         "psql -U postgres -d ragdb -c 'CREATE EXTENSION IF NOT EXISTS vector;'"
       ],
-      "db-start": ["pg_ctl start -D $PGDATA -l $PGDATA/postgres.log"],
-      "db-stop": ["pg_ctl stop -D $PGDATA"],
-      "db-status": ["pg_ctl status -D $PGDATA"]
+      "db-start":  ["pg_ctl start -D $PGDATA -l $PGDATA/postgres.log"],
+      "db-stop":   ["pg_ctl stop -D $PGDATA"],
+      "db-status": ["pg_ctl status -D $PGDATA"],
+      "ollama-start": ["ollama serve &"],
+      "ollama-pull":  ["ollama pull snowflake-arctic-embed2", "ollama pull qwen2.5:32b"]
     }
   }
 }
