@@ -1,13 +1,14 @@
-import time
+import time  # used by re-ingest stub
 
 import streamlit as st
 
-from rag.retriever import get_vector_store, search
+from rag.graph import build_graph
+from rag.retriever import search
 
 
 @st.cache_resource
-def _vector_store():
-    return get_vector_store()
+def _graph():
+    return build_graph()
 
 
 st.set_page_config(page_title="Knowledge Base", layout="wide")
@@ -45,22 +46,14 @@ with ask_tab:
         if not question.strip():
             st.warning("Enter a question.")
         else:
+            with st.spinner("Thinking..."):
+                result = _graph().invoke({"question": question})
             with st.container(border=True):
                 st.markdown("**Answer**")
-                # TODO: replace with rag.graph streaming
-                placeholder = st.empty()
-                answer = "This is a placeholder answer. The RAG graph will stream the real answer here."
-                streamed = ""
-                for word in answer.split():
-                    streamed += word + " "
-                    placeholder.markdown(streamed)
-                    time.sleep(0.05)
+                st.write(result["answer"])
 
             st.markdown("**Retrieved chunks**")
-            # TODO: replace with real retrieved docs from graph state
-            chunks = [
-                {"topic": "Performance Reviews", "source": "sample.txt", "document": "Sample retrieved chunk..."},
-            ]
-            for chunk in chunks:
-                with st.expander(f"{chunk['topic']} — {chunk['source']}"):
-                    st.write(chunk["document"])
+            for doc in result["documents"]:
+                topic = doc.metadata.get("topic") or doc.metadata.get("source", "")
+                with st.expander(f"{topic} — {doc.metadata.get('source', '')}"):
+                    st.write(doc.page_content)
