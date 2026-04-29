@@ -3,7 +3,7 @@ import time  # used by re-ingest stub
 import streamlit as st
 
 from rag.graph import build_graph, stream_answer
-from rag.retriever import search
+from rag.retriever import list_all, search
 
 
 @st.cache_resource
@@ -23,7 +23,7 @@ with st.sidebar:
         st.success("Done.")
 
 # --- Tabs ---
-search_tab, ask_tab = st.tabs(["Search Docs", "Ask a Question"])
+search_tab, ask_tab, all_tab = st.tabs(["Search Docs", "Ask a Question", "All Docs"])
 
 with search_tab:
     query = st.text_input("Search", placeholder="e.g. performance reviews")
@@ -66,3 +66,18 @@ with ask_tab:
                     topic = doc.metadata.get("topic") or doc.metadata.get("source", "")
                     with st.expander(f"{topic} — {doc.metadata.get('source', '')}"):
                         st.write(doc.page_content)
+
+with all_tab:
+    if st.button("Load all docs", key="load_all_btn"):
+        with st.spinner("Loading..."):
+            all_docs = list_all()
+        st.markdown(f"**{len(all_docs)} documents**")
+        for doc in all_docs:
+            topic = doc.metadata.get("topic") or doc.metadata.get("source", "")
+            with st.expander(topic):
+                st.caption(doc.metadata.get("source", ""))
+                if doc.metadata.get("audience"):
+                    st.caption(f"Audience: {doc.metadata['audience']}")
+                if doc.metadata.get("tags"):
+                    st.caption(f"Tags: {doc.metadata['tags']}")
+                st.write(doc.page_content)
