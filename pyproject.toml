@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["ingest"]
+packages = ["ingest", "rag", "app"]
 
 [build-system]
 requires = ["hatchling"]

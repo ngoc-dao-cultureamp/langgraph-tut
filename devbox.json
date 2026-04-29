@@ -23,7 +23,8 @@
         "psql -U postgres -d ragdb -c 'CREATE EXTENSION IF NOT EXISTS vector;'",
         "pg_ctl stop -D $PGDATA"
       ],
-      "ollama-pull": ["ollama pull snowflake-arctic-embed2", "ollama pull qwen2.5:32b"]
+      "ollama-pull": ["ollama pull snowflake-arctic-embed2", "ollama pull qwen2.5:32b"],
+      "ui": ["uv run streamlit run app/ui.py"]
     }
   }
 }
