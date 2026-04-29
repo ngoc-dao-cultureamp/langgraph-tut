@@ -23,7 +23,7 @@ def get_vector_store() -> PGVector:
     )
 
 
-def search(query: str, k: int = 5) -> list[Document]:
+def search(query: str, k: int = 10) -> list[Document]:
     return get_vector_store().similarity_search(query, k=k)
 
 
