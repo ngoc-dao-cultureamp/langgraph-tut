@@ -17,7 +17,7 @@ devbox shell
 ### 2. Install Python dependencies
 
 ```bash
-pip install -e .
+uv sync
 ```
 
 ### 3. Copy and configure environment variables
@@ -48,7 +48,7 @@ Starts PostgreSQL (with pgvector) and Ollama together. On first run, PostgreSQL 
 ### 6. Ingest documents
 
 ```bash
-python -m ingest.pipeline
+uv run python -m ingest.pipeline
 ```
 
 ## Services

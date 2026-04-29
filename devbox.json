@@ -3,11 +3,11 @@
   "packages": [
     "python@3.12",
     "path:.#default",
-    "ollama@latest"
+    "ollama@latest",
+    "uv@latest"
   ],
   "shell": {
     "init_hook": [
-      ". $VENV_DIR/bin/activate",
       "export PGDATA=\"$PWD/.pgdata\"",
       "export PGHOST=localhost",
       "export PGUSER=postgres",
