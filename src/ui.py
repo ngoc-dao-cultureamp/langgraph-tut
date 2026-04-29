@@ -1,4 +1,5 @@
 import time
+import uuid
 
 import streamlit as st
 
@@ -24,14 +25,14 @@ with st.sidebar:
 
     st.divider()
     if st.button("Clear chat history", use_container_width=True):
-        st.session_state.history = []
+        st.session_state.thread_id = str(uuid.uuid4())  # new thread = fresh memory
         st.session_state.messages = []
         st.session_state.last_debug = None
         st.rerun()
 
 # Initialise session state
-if "history" not in st.session_state:
-    st.session_state.history = []    # list of (question, answer) for graph context
+if "thread_id" not in st.session_state:
+    st.session_state.thread_id = str(uuid.uuid4())  # one thread per browser session
 if "messages" not in st.session_state:
     st.session_state.messages = []   # list of {"role", "content"} for display
 if "last_debug" not in st.session_state:
@@ -78,7 +79,7 @@ with chat_tab:
         with st.chat_message("assistant"):
             placeholder = st.empty()
             with st.spinner("Thinking..."):
-                for event, payload in stream_answer(question, st.session_state.history, _graph()):
+                for event, payload in stream_answer(question, _graph(), st.session_state.thread_id):
                     if event == "standalone":
                         standalone = payload
                     elif event == "hypothesis":
@@ -90,7 +91,6 @@ with chat_tab:
                         placeholder.markdown(streamed)
 
         st.session_state.messages.append({"role": "assistant", "content": streamed})
-        st.session_state.history.append((question, streamed))
         st.session_state.last_debug = {
             "standalone": standalone,
             "hypothesis": hypothesis,

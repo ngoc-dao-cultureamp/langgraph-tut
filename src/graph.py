@@ -6,6 +6,7 @@ from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 
 from retriever import search
@@ -40,22 +41,13 @@ _ANSWER_PROMPT = ChatPromptTemplate.from_template(
 )
 
 
-def _format_history(history: list[tuple[str, str]]) -> str:
-    if not history:
-        return "(none)"
-    return "\n".join(f"Q: {q}\nA: {a}" for q, a in history)
-
-
 def _rewrite(state: RAGState) -> RAGState:
-    history = state.get("history") or []
-    if not history:
+    history = state.get("history", "(none)") or "(none)"
+    if history == "(none)":
         return {"standalone_question": state["question"]}
     llm = ChatOllama(model=LLM_MODEL, base_url=OLLAMA_HOST)
     chain = _REWRITE_PROMPT | llm | StrOutputParser()
-    standalone = chain.invoke({
-        "history": _format_history(history),
-        "question": state["question"],
-    })
+    standalone = chain.invoke({"history": history, "question": state["question"]})
     return {"standalone_question": standalone}
 
 
@@ -85,7 +77,7 @@ def _generate(state: RAGState) -> RAGState:
     llm = ChatOllama(model=LLM_MODEL, base_url=OLLAMA_HOST)
     chain = _ANSWER_PROMPT | llm | StrOutputParser()
     answer = chain.invoke({
-        "history": _format_history(state.get("history") or []),
+        "history": state.get("history", "(none)") or "(none)",
         "context": context,
         "question": state["question"],
     })
@@ -93,8 +85,8 @@ def _generate(state: RAGState) -> RAGState:
 
 
 def build_graph():
-    # TODO: pass checkpointer=MemorySaver() or PostgresSaver() here for
-    #       persistent cross-session memory without changing any node logic.
+    # MemorySaver persists state in RAM across turns within a thread.
+    # To persist across app restarts, swap for PostgresSaver — one line change.
     g = StateGraph(RAGState)
     g.add_node("rewrite", _rewrite)
     g.add_node("hypothesize", _hypothesize)
@@ -105,16 +97,32 @@ def build_graph():
     g.add_edge("hypothesize", "retrieve")
     g.add_edge("retrieve", "generate")
     g.add_edge("generate", END)
-    return g.compile()
+    return g.compile(checkpointer=MemorySaver())
 
 
 type StreamEvent = tuple[str, list[Document]] | tuple[str, str]
 
 
+def _build_history_str(compiled_graph, config: dict) -> str:
+    """Read prior (question, answer) pairs from MemorySaver for this thread."""
+    try:
+        states = list(compiled_graph.get_state_history(config))
+        # Each state snapshot is one completed turn; collect the most recent ones
+        turns = []
+        for snapshot in reversed(states):
+            q = snapshot.values.get("question", "")
+            a = snapshot.values.get("answer", "")
+            if q and a:
+                turns.append(f"Q: {q}\nA: {a}")
+        return "\n".join(turns) if turns else "(none)"
+    except Exception:
+        return "(none)"
+
+
 def stream_answer(
     question: str,
-    history: list[tuple[str, str]],
     compiled_graph,
+    thread_id: str,
 ) -> Generator[StreamEvent, None, None]:
     """Yield typed events from a single graph run:
       ("standalone", str)       — rewritten self-contained question
@@ -122,8 +130,12 @@ def stream_answer(
       ("docs", list[Document])  — retrieved chunks
       ("token", str)            — one LLM output token at a time
     """
+    config = {"configurable": {"thread_id": thread_id}}
+    history = _build_history_str(compiled_graph, config)
+
     for mode, data in compiled_graph.stream(
         {"question": question, "history": history},
+        config=config,
         stream_mode=["messages", "updates"],
     ):
         if mode == "updates":
