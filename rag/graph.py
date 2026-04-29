@@ -38,7 +38,17 @@ def _hypothesize(state: RAGState) -> RAGState:
 
 
 def _retrieve(state: RAGState) -> RAGState:
-    return {"documents": search(state["hypothesis"], k=10)}
+    # Search with both hypothesis and original question, deduplicate by content.
+    # HyDE improves recall when accurate; the original query is a safety net when not.
+    by_hypothesis = search(state["hypothesis"], k=8)
+    by_question = search(state["question"], k=5)
+    seen, merged = set(), []
+    for doc in by_hypothesis + by_question:
+        key = doc.page_content[:100]
+        if key not in seen:
+            seen.add(key)
+            merged.append(doc)
+    return {"documents": merged}
 
 
 def _generate(state: RAGState) -> RAGState:
