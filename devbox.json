@@ -1,14 +1,27 @@
 {
   "$schema":  "https://raw.githubusercontent.com/jetify-com/devbox/0.17.2/.schema/devbox.schema.json",
-  "packages": ["python@3.12"],
+  "packages": ["python@3.12", "path:.#default"],
   "shell": {
     "init_hook": [
       ". $VENV_DIR/bin/activate"
     ],
+    "env": {
+      "PGDATA": "$PWD/.pgdata",
+      "PGHOST": "localhost",
+      "PGUSER": "postgres",
+      "PGDATABASE": "ragdb"
+    },
     "scripts": {
-      "test": [
-        "echo \"Error: no test specified\" && exit 1"
-      ]
+      "db-init": [
+        "mkdir -p $PGDATA",
+        "initdb --pgdata=$PGDATA --username=postgres",
+        "pg_ctl start -D $PGDATA -l $PGDATA/postgres.log",
+        "createdb -U postgres ragdb",
+        "psql -U postgres -d ragdb -c 'CREATE EXTENSION IF NOT EXISTS vector;'"
+      ],
+      "db-start": ["pg_ctl start -D $PGDATA -l $PGDATA/postgres.log"],
+      "db-stop": ["pg_ctl stop -D $PGDATA"],
+      "db-status": ["pg_ctl status -D $PGDATA"]
     }
   }
 }
