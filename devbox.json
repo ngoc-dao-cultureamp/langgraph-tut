@@ -7,27 +7,23 @@
   ],
   "shell": {
     "init_hook": [
-      ". $VENV_DIR/bin/activate"
+      ". $VENV_DIR/bin/activate",
+      "export PGDATA=\"$PWD/.pgdata\"",
+      "export PGHOST=localhost",
+      "export PGUSER=postgres",
+      "export PGDATABASE=ragdb"
     ],
-    "env": {
-      "PGDATA":     "$PWD/.pgdata",
-      "PGHOST":     "localhost",
-      "PGUSER":     "postgres",
-      "PGDATABASE": "ragdb"
-    },
     "scripts": {
-      "db-init": [
-        "mkdir -p $PGDATA",
+      "db-reset": [
+        "pg_ctl stop -D $PGDATA || true",
+        "rm -rf $PGDATA",
         "initdb --pgdata=$PGDATA --username=postgres",
         "pg_ctl start -D $PGDATA -l $PGDATA/postgres.log",
         "createdb -U postgres ragdb",
-        "psql -U postgres -d ragdb -c 'CREATE EXTENSION IF NOT EXISTS vector;'"
+        "psql -U postgres -d ragdb -c 'CREATE EXTENSION IF NOT EXISTS vector;'",
+        "pg_ctl stop -D $PGDATA"
       ],
-      "db-start":  ["pg_ctl start -D $PGDATA -l $PGDATA/postgres.log"],
-      "db-stop":   ["pg_ctl stop -D $PGDATA"],
-      "db-status": ["pg_ctl status -D $PGDATA"],
-      "ollama-start": ["ollama serve &"],
-      "ollama-pull":  ["ollama pull snowflake-arctic-embed2", "ollama pull qwen2.5:32b"]
+      "ollama-pull": ["ollama pull snowflake-arctic-embed2", "ollama pull qwen2.5:32b"]
     }
   }
 }

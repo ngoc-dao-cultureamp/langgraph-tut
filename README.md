@@ -14,15 +14,20 @@ A minimal RAG app using LangGraph, PostgreSQL + pgvector, Ollama, and Streamlit.
 devbox shell
 ```
 
-### 2. Initialize the database (first time only)
+### 2. Install Python dependencies
 
 ```bash
-devbox run db-init
+pip install -e .
 ```
 
-This creates a local PostgreSQL 17 instance in `.pgdata/`, creates the `ragdb` database, and enables the `pgvector` extension.
+### 3. Copy and configure environment variables
 
-### 3. Pull Ollama models (first time only)
+```bash
+cp .env.example .env
+# Edit .env if your paths or ports differ
+```
+
+### 4. Pull Ollama models (first time only)
 
 ```bash
 devbox run ollama-pull
@@ -32,21 +37,28 @@ This pulls `snowflake-arctic-embed2` (embedding model) and `qwen2.5:32b` (LLM).
 
 `qwen2.5:32b` runs well on both M3 Max (36GB) and RTX 3090 (24GB VRAM).
 
-### 4. Start the database and Ollama
+### 5. Start services
 
 ```bash
-devbox run db-start
-devbox run ollama-start
+devbox services up
 ```
 
-## Database commands
+Starts PostgreSQL (with pgvector) and Ollama together. On first run, PostgreSQL is automatically initialised and the `vector` extension enabled.
+
+### 6. Ingest documents
+
+```bash
+python -m ingest.pipeline
+```
+
+## Services
 
 | Command | Description |
 |---|---|
-| `devbox run db-init` | Initialize and create DB (first time only) |
-| `devbox run db-start` | Start PostgreSQL |
-| `devbox run db-stop` | Stop PostgreSQL |
-| `devbox run db-status` | Check if PostgreSQL is running |
+| `devbox services up` | Start PostgreSQL + Ollama |
+| `devbox services down` | Stop all services |
+| `devbox run db-reset` | Wipe and reinitialise the database |
+| `devbox run ollama-pull` | Pull embedding model + LLM (first time only) |
 
 ## Connection details
 
@@ -57,13 +69,6 @@ devbox run ollama-start
 | User | `postgres` |
 | Database | `ragdb` |
 | URL | `postgresql://postgres@localhost:5432/ragdb` |
-
-## Ollama commands
-
-| Command | Description |
-|---|---|
-| `devbox run ollama-start` | Start Ollama server in background |
-| `devbox run ollama-pull` | Pull embedding model + LLM (first time only) |
 
 ## Stack
 
