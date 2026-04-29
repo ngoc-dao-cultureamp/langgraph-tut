@@ -1,9 +1,9 @@
-import time
 import uuid
 
 import streamlit as st
 
 from graph import build_graph, stream_answer
+from ingest import run as ingest_run
 from retriever import list_all, search
 
 
@@ -19,9 +19,17 @@ st.title("Sherlock Holmes")
 with st.sidebar:
     st.header("Admin")
     if st.button("Re-ingest documents", use_container_width=True):
-        with st.spinner("Ingesting..."):
-            time.sleep(2)  # TODO: call ingest.run()
-        st.success("Done.")
+        progress_bar = st.progress(0, text="Ingesting…")
+        try:
+            def _on_progress(current, total):
+                progress_bar.progress(current / total, text=f"Ingesting… {current}/{total}")
+
+            count = ingest_run(on_progress=_on_progress)
+            progress_bar.empty()
+            st.success(f"Done. Ingested {count} chunks.")
+        except Exception as exc:
+            progress_bar.empty()
+            st.error(f"Ingest failed: {exc}")
 
     st.divider()
     if st.button("Clear chat history", use_container_width=True):
@@ -47,14 +55,17 @@ with search_tab:
         if not query.strip():
             st.warning("Enter a search term.")
         else:
-            with st.spinner("Searching..."):
-                results = search(query, k=5)
-            st.markdown(f"**{len(results)} results**")
-            for i, doc in enumerate(results, 1):
-                topic = doc.metadata.get("topic") or doc.metadata.get("source", "")
-                with st.expander(f"{i}. {topic}"):
-                    st.caption(doc.metadata.get("source", ""))
-                    st.write(doc.page_content)
+            try:
+                with st.spinner("Searching..."):
+                    results = search(query, k=5)
+                st.markdown(f"**{len(results)} results**")
+                for i, doc in enumerate(results, 1):
+                    topic = doc.metadata.get("topic") or doc.metadata.get("source", "")
+                    with st.expander(f"{i}. {topic}"):
+                        st.caption(doc.metadata.get("source", ""))
+                        st.write(doc.page_content)
+            except Exception as exc:
+                st.error(f"Search failed: {exc}")
 
 with chat_tab:
     debug_mode = st.toggle("Show debug panel")
@@ -78,17 +89,20 @@ with chat_tab:
         # then rerun to move it into the scrollable history above.
         with st.chat_message("assistant"):
             placeholder = st.empty()
-            with st.spinner("Thinking..."):
-                for event, payload in stream_answer(question, _graph(), st.session_state.thread_id):
-                    if event == "standalone":
-                        standalone = payload
-                    elif event == "hypothesis":
-                        hypothesis = payload
-                    elif event == "docs":
-                        documents = payload
-                    elif event == "token":
-                        streamed += payload
-                        placeholder.markdown(streamed)
+            try:
+                with st.spinner("Thinking..."):
+                    for event, payload in stream_answer(question, _graph(), st.session_state.thread_id):
+                        if event == "standalone":
+                            standalone = payload
+                        elif event == "hypothesis":
+                            hypothesis = payload
+                        elif event == "docs":
+                            documents = payload
+                        elif event == "token":
+                            streamed += payload
+                            placeholder.markdown(streamed)
+            except Exception as exc:
+                placeholder.error(f"Error: {exc}")
 
         st.session_state.messages.append({"role": "assistant", "content": streamed})
         st.session_state.last_debug = {
@@ -116,11 +130,14 @@ with chat_tab:
 
 with all_tab:
     if st.button("Load all docs", key="load_all_btn"):
-        with st.spinner("Loading..."):
-            all_docs = list_all()
-        st.markdown(f"**{len(all_docs)} documents**")
-        for doc in all_docs:
-            topic = doc.metadata.get("topic") or doc.metadata.get("source", "")
-            with st.expander(topic):
-                st.caption(doc.metadata.get("source", ""))
-                st.write(doc.page_content)
+        try:
+            with st.spinner("Loading..."):
+                all_docs = list_all()
+            st.markdown(f"**{len(all_docs)} documents**")
+            for doc in all_docs:
+                topic = doc.metadata.get("topic") or doc.metadata.get("source", "")
+                with st.expander(topic):
+                    st.caption(doc.metadata.get("source", ""))
+                    st.write(doc.page_content)
+        except Exception as exc:
+            st.error(f"Failed to load docs: {exc}")
