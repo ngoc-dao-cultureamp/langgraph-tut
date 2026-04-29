@@ -54,7 +54,8 @@ def _filter(state: RAGState) -> RAGState:
     verdict = chain.invoke({"question": state["question"]}).strip().lower()
     if not verdict.startswith("yes"):
         return {"answer": _OFF_TOPIC_ANSWER}
-    return {}
+    # Clear stale answer from MemorySaver so _is_off_topic routes correctly.
+    return {"answer": ""}
 
 
 def _is_off_topic(state: RAGState) -> str:
