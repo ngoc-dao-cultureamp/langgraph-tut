@@ -48,7 +48,7 @@ Starts PostgreSQL (with pgvector) and Ollama together. On first run, PostgreSQL 
 ### 6. Ingest documents
 
 ```bash
-uv run python -m ingest.pipeline
+uv run python src/ingest.py
 ```
 
 ## Services

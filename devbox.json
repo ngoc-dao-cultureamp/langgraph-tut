@@ -11,7 +11,8 @@
       "export PGDATA=\"$PWD/.pgdata\"",
       "export PGHOST=localhost",
       "export PGUSER=postgres",
-      "export PGDATABASE=ragdb"
+      "export PGDATABASE=ragdb",
+      "export PYTHONPATH=\"$PWD/src\""
     ],
     "scripts": {
       "db-reset": [
@@ -24,7 +25,7 @@
         "pg_ctl stop -D $PGDATA"
       ],
       "ollama-pull": ["ollama pull snowflake-arctic-embed2", "ollama pull qwen2.5:32b"],
-      "ui": ["uv run streamlit run app/ui.py"]
+      "ui": ["uv run streamlit run src/ui.py"]
     }
   }
 }

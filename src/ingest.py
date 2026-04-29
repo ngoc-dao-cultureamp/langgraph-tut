@@ -6,17 +6,13 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from langchain_core.documents import Document
-from langchain_ollama import OllamaEmbeddings
-from langchain_postgres import PGVector
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+from store import get_vector_store
 
 load_dotenv()
 
 BOOKS_DIR = Path(os.environ["BOOKS_DIR"])
-DB_URL = os.environ["DB_URL"]
-EMBED_MODEL = os.environ.get("EMBED_MODEL", "snowflake-arctic-embed2")
-OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
-COLLECTION_NAME = "docs"
 
 _GUTENBERG_START_RE = re.compile(r"\*{3} START OF THE PROJECT GUTENBERG EBOOK .+? \*{3}", re.IGNORECASE)
 _GUTENBERG_END_RE = re.compile(r"\*{3} END OF THE PROJECT GUTENBERG EBOOK .+? \*{3}", re.IGNORECASE)
@@ -62,16 +58,6 @@ def load_books() -> list[Document]:
     for path in sorted(BOOKS_DIR.glob("*.txt")):
         chunks.extend(_parse_book_file(path))
     return chunks
-
-
-def get_vector_store() -> PGVector:
-    embeddings = OllamaEmbeddings(model=EMBED_MODEL, base_url=OLLAMA_HOST)
-    return PGVector(
-        embeddings=embeddings,
-        collection_name=COLLECTION_NAME,
-        connection=DB_URL,
-        use_jsonb=True,
-    )
 
 
 def run(on_progress=None) -> int:

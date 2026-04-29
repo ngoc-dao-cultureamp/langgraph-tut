@@ -8,8 +8,8 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
 from langgraph.graph import END, START, StateGraph
 
-from rag.retriever import search
-from rag.state import RAGState
+from retriever import search
+from state import RAGState
 
 load_dotenv()
 

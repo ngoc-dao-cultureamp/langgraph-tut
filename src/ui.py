@@ -2,8 +2,8 @@ import time  # used by re-ingest stub
 
 import streamlit as st
 
-from rag.graph import build_graph, stream_answer
-from rag.retriever import list_all, search
+from graph import build_graph, stream_answer
+from retriever import list_all, search
 
 
 @st.cache_resource
@@ -19,7 +19,7 @@ with st.sidebar:
     st.header("Admin")
     if st.button("Re-ingest documents", use_container_width=True):
         with st.spinner("Ingesting..."):
-            time.sleep(2)  # TODO: call ingest.pipeline.run()
+            time.sleep(2)  # TODO: call ingest.run()
         st.success("Done.")
 
 # --- Tabs ---
