@@ -2,6 +2,14 @@ import time
 
 import streamlit as st
 
+from rag.retriever import get_vector_store, search
+
+
+@st.cache_resource
+def _vector_store():
+    return get_vector_store()
+
+
 st.set_page_config(page_title="Knowledge Base", layout="wide")
 st.title("Knowledge Base")
 
@@ -23,23 +31,13 @@ with search_tab:
             st.warning("Enter a search term.")
         else:
             with st.spinner("Searching..."):
-                time.sleep(1)  # TODO: call rag.retriever.search()
-            # TODO: replace with real results
-            results = [
-                {
-                    "document": "Sample chunk about performance reviews...",
-                    "metadata": {"topic": "Performance Reviews", "source": "sample.txt"},
-                },
-                {
-                    "document": "Another relevant chunk...",
-                    "metadata": {"topic": "Feedback", "source": "sample2.txt"},
-                },
-            ]
+                results = search(query, k=5)
             st.markdown(f"**{len(results)} results**")
-            for i, r in enumerate(results, 1):
-                with st.expander(f"{i}. {r['metadata'].get('topic', r['metadata']['source'])}"):
-                    st.caption(r["metadata"]["source"])
-                    st.write(r["document"])
+            for i, doc in enumerate(results, 1):
+                topic = doc.metadata.get("topic") or doc.metadata.get("source", "")
+                with st.expander(f"{i}. {topic}"):
+                    st.caption(doc.metadata.get("source", ""))
+                    st.write(doc.page_content)
 
 with ask_tab:
     question = st.text_input("Question", placeholder="e.g. What makes a good performance review?")
