@@ -48,6 +48,7 @@ with ask_tab:
         else:
             with st.spinner("Thinking..."):
                 result = _graph().invoke({"question": question})
+
             with st.container(border=True):
                 st.markdown("**Answer**")
                 st.write(result["answer"])
