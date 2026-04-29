@@ -2,7 +2,7 @@ import time  # used by re-ingest stub
 
 import streamlit as st
 
-from rag.graph import build_graph
+from rag.graph import build_graph, stream_answer
 from rag.retriever import search
 
 
@@ -46,15 +46,23 @@ with ask_tab:
         if not question.strip():
             st.warning("Enter a question.")
         else:
-            with st.spinner("Thinking..."):
-                result = _graph().invoke({"question": question})
+            documents = []
+            answer_container = st.container(border=True)
+            answer_container.markdown("**Answer**")
+            answer_placeholder = answer_container.empty()
+            streamed = ""
 
-            with st.container(border=True):
-                st.markdown("**Answer**")
-                st.write(result["answer"])
+            with st.spinner("Retrieving..."):
+                for event, payload in stream_answer(question, _graph()):
+                    if event == "docs":
+                        documents = payload
+                    elif event == "token":
+                        streamed += payload
+                        answer_placeholder.markdown(streamed)
 
-            st.markdown("**Retrieved chunks**")
-            for doc in result["documents"]:
-                topic = doc.metadata.get("topic") or doc.metadata.get("source", "")
-                with st.expander(f"{topic} — {doc.metadata.get('source', '')}"):
-                    st.write(doc.page_content)
+            if documents:
+                st.markdown("**Retrieved chunks**")
+                for doc in documents:
+                    topic = doc.metadata.get("topic") or doc.metadata.get("source", "")
+                    with st.expander(f"{topic} — {doc.metadata.get('source', '')}"):
+                        st.write(doc.page_content)

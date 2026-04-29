@@ -1,6 +1,8 @@
 import os
+from collections.abc import Generator
 
 from dotenv import load_dotenv
+from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
@@ -42,3 +44,28 @@ def build_graph():
     g.add_edge("retrieve", "generate")
     g.add_edge("generate", END)
     return g.compile()
+
+
+type StreamEvent = tuple[str, list[Document]] | tuple[str, str]
+
+
+def stream_answer(question: str, compiled_graph) -> Generator[StreamEvent, None, None]:
+    """Yield ("docs", documents) once after retrieval, then ("token", text) per token.
+
+    Uses LangGraph's dual stream mode so both node state updates and LLM tokens
+    come from the same graph run without running retrieval twice.
+    """
+    for mode, data in compiled_graph.stream(
+        {"question": question},
+        stream_mode=["messages", "updates"],
+    ):
+        if mode == "updates" and "retrieve" in data:
+            yield ("docs", data["retrieve"]["documents"])
+        elif mode == "messages":
+            chunk, metadata = data
+            if (
+                metadata.get("langgraph_node") == "generate"
+                and hasattr(chunk, "content")
+                and chunk.content
+            ):
+                yield ("token", chunk.content)
