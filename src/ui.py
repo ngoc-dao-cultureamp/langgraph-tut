@@ -26,13 +26,16 @@ with st.sidebar:
     if st.button("Clear chat history", use_container_width=True):
         st.session_state.history = []
         st.session_state.messages = []
+        st.session_state.last_debug = None
         st.rerun()
 
 # Initialise session state
 if "history" not in st.session_state:
-    st.session_state.history = []   # list of (question, answer) for graph context
+    st.session_state.history = []    # list of (question, answer) for graph context
 if "messages" not in st.session_state:
-    st.session_state.messages = []  # list of {"role", "content", "debug"} for display
+    st.session_state.messages = []   # list of {"role", "content"} for display
+if "last_debug" not in st.session_state:
+    st.session_state.last_debug = None  # debug data from the most recent turn
 
 # --- Tabs ---
 search_tab, chat_tab, all_tab = st.tabs(["Search Docs", "Chat", "All Docs"])
@@ -55,36 +58,23 @@ with search_tab:
 with chat_tab:
     debug_mode = st.toggle("Show debug panel")
 
-    # Render existing messages
-    for msg in st.session_state.messages:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
-            if debug_mode and msg.get("debug"):
-                with st.expander("Debug"):
-                    d = msg["debug"]
-                    st.markdown("**Standalone question**")
-                    st.info(d.get("standalone", ""))
-                    st.markdown("**Hypothesis (HyDE)**")
-                    st.info(d.get("hypothesis", ""))
-                    st.markdown("**Retrieved chunks**")
-                    for i, doc in enumerate(d.get("documents", []), 1):
-                        title = doc.metadata.get("title", "")
-                        idx = doc.metadata.get("chunk_index", "")
-                        total = doc.metadata.get("chunk_total", "")
-                        st.markdown(f"*Chunk {i} — {title} [{idx}/{total}]*")
-                        st.code(doc.page_content, language=None)
+    # Scrollable message history — keeps chat_input visually at the bottom
+    with st.container(height=500):
+        for msg in st.session_state.messages:
+            with st.chat_message(msg["role"]):
+                st.markdown(msg["content"])
 
-    # New message input
+    # Chat input sits below the scrollable area
     if question := st.chat_input("Ask about Sherlock Holmes..."):
         st.session_state.messages.append({"role": "user", "content": question})
-        with st.chat_message("user"):
-            st.markdown(question)
 
         standalone = ""
         hypothesis = ""
         documents = []
         streamed = ""
 
+        # Stream the assistant reply below the history container while generating,
+        # then rerun to move it into the scrollable history above.
         with st.chat_message("assistant"):
             placeholder = st.empty()
             with st.spinner("Thinking..."):
@@ -99,10 +89,30 @@ with chat_tab:
                         streamed += payload
                         placeholder.markdown(streamed)
 
-        # Persist to session state
-        debug_data = {"standalone": standalone, "hypothesis": hypothesis, "documents": documents}
-        st.session_state.messages.append({"role": "assistant", "content": streamed, "debug": debug_data})
+        st.session_state.messages.append({"role": "assistant", "content": streamed})
         st.session_state.history.append((question, streamed))
+        st.session_state.last_debug = {
+            "standalone": standalone,
+            "hypothesis": hypothesis,
+            "documents": documents,
+        }
+        st.rerun()
+
+    # Debug panel — always shows the latest turn only
+    if debug_mode and st.session_state.last_debug:
+        d = st.session_state.last_debug
+        with st.expander("Debug — last turn", expanded=True):
+            st.markdown("**Standalone question**")
+            st.info(d.get("standalone", ""))
+            st.markdown("**Hypothesis (HyDE)**")
+            st.info(d.get("hypothesis", ""))
+            st.markdown("**Retrieved chunks**")
+            for i, doc in enumerate(d.get("documents", []), 1):
+                title = doc.metadata.get("title", "")
+                idx = doc.metadata.get("chunk_index", "")
+                total = doc.metadata.get("chunk_total", "")
+                st.markdown(f"*Chunk {i} — {title} [{idx}/{total}]*")
+                st.code(doc.page_content, language=None)
 
 with all_tab:
     if st.button("Load all docs", key="load_all_btn"):
