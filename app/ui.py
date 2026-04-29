@@ -41,26 +41,42 @@ with search_tab:
                     st.write(doc.page_content)
 
 with ask_tab:
-    question = st.text_input("Question", placeholder="e.g. What makes a good performance review?")
+    question = st.text_input("Question", placeholder="e.g. Where does Sherlock Holmes live?")
+    debug_mode = st.toggle("Show debug panel")
+
     if st.button("Ask", key="ask_btn"):
         if not question.strip():
             st.warning("Enter a question.")
         else:
+            hypothesis = ""
             documents = []
             answer_container = st.container(border=True)
             answer_container.markdown("**Answer**")
             answer_placeholder = answer_container.empty()
             streamed = ""
 
-            with st.spinner("Retrieving..."):
+            with st.spinner("Thinking..."):
                 for event, payload in stream_answer(question, _graph()):
-                    if event == "docs":
+                    if event == "hypothesis":
+                        hypothesis = payload
+                    elif event == "docs":
                         documents = payload
                     elif event == "token":
                         streamed += payload
                         answer_placeholder.markdown(streamed)
 
-            if documents:
+            if debug_mode:
+                with st.expander("Debug", expanded=True):
+                    st.markdown("**Hypothesis (HyDE)**")
+                    st.info(hypothesis)
+                    st.markdown("**Retrieved chunks**")
+                    for i, doc in enumerate(documents, 1):
+                        title = doc.metadata.get("title", "")
+                        idx = doc.metadata.get("chunk_index", "")
+                        total = doc.metadata.get("chunk_total", "")
+                        st.markdown(f"*Chunk {i} — {title} [{idx}/{total}]*")
+                        st.code(doc.page_content, language=None)
+            elif documents:
                 st.markdown("**Retrieved chunks**")
                 for doc in documents:
                     topic = doc.metadata.get("topic") or doc.metadata.get("source", "")

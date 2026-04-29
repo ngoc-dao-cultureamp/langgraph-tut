@@ -65,17 +65,20 @@ type StreamEvent = tuple[str, list[Document]] | tuple[str, str]
 
 
 def stream_answer(question: str, compiled_graph) -> Generator[StreamEvent, None, None]:
-    """Yield ("docs", documents) once after retrieval, then ("token", text) per token.
-
-    Uses LangGraph's dual stream mode so both node state updates and LLM tokens
-    come from the same graph run without running retrieval twice.
+    """Yield typed events from a single graph run:
+      ("hypothesis", str)       — HyDE hypothetical answer used for retrieval
+      ("docs", list[Document])  — retrieved chunks
+      ("token", str)            — one LLM output token at a time
     """
     for mode, data in compiled_graph.stream(
         {"question": question},
         stream_mode=["messages", "updates"],
     ):
-        if mode == "updates" and "retrieve" in data:
-            yield ("docs", data["retrieve"]["documents"])
+        if mode == "updates":
+            if "hypothesize" in data:
+                yield ("hypothesis", data["hypothesize"]["hypothesis"])
+            elif "retrieve" in data:
+                yield ("docs", data["retrieve"]["documents"])
         elif mode == "messages":
             chunk, metadata = data
             if (
