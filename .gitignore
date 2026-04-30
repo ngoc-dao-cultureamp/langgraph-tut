@@ -6,3 +6,4 @@ __pycache__/
 *.pyo
 .env
 !.env.example
+.webui_secret_key
