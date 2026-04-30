@@ -3,19 +3,14 @@ version: "0.5"
 processes:
   postgres:
     command: |
-      if ! pg_ctl status -D "$PGDATA" > /dev/null 2>&1; then
-        if [ ! -f "$PGDATA/PG_VERSION" ]; then
-          initdb --pgdata="$PGDATA" --username=postgres
-          pg_ctl start -D "$PGDATA" -l "$PGDATA/postgres.log"
-          createdb -U postgres ragdb
-          psql -U postgres -d ragdb -c 'CREATE EXTENSION IF NOT EXISTS vector;'
-        else
-          pg_ctl start -D "$PGDATA" -l "$PGDATA/postgres.log"
-        fi
+      if [ ! -f "$PGDATA/PG_VERSION" ]; then
+        initdb --pgdata="$PGDATA" --username=postgres
+        pg_ctl start -D "$PGDATA" -l "$PGDATA/postgres.log" -w
+        createdb -U postgres ragdb
+        psql -U postgres -d ragdb -c 'CREATE EXTENSION IF NOT EXISTS vector;'
+        pg_ctl stop -D "$PGDATA" -w
       fi
-      tail -f "$PGDATA/postgres.log"
-    shutdown:
-      command: "pg_ctl stop -D \"$PGDATA\""
+      exec postgres -D "$PGDATA"
     readiness_probe:
       exec:
         command: "pg_isready -U postgres -d ragdb"
@@ -31,3 +26,11 @@ processes:
         path: /
       initial_delay_seconds: 2
       period_seconds: 2
+
+  open-webui:
+    command: "uvx open-webui serve"
+    environment:
+      - OLLAMA_BASE_URL=http://localhost:11434
+    depends_on:
+      ollama:
+        condition: process_healthy

@@ -55,10 +55,18 @@ uv run python src/ingest.py
 
 | Command | Description |
 |---|---|
-| `devbox services up` | Start PostgreSQL + Ollama |
+| `devbox services up` | Start PostgreSQL, Ollama, and Open WebUI |
 | `devbox services down` | Stop all services |
 | `devbox run db-reset` | Wipe and reinitialise the database |
 | `devbox run ollama-pull` | Pull embedding model + LLM (first time only) |
+
+### Open WebUI
+
+`devbox services up` also starts [Open WebUI](https://github.com/open-webui/open-webui) at **http://localhost:8080** — a self-hosted ChatGPT-like interface for all Ollama models.
+
+It runs in an isolated environment via `uvx` so it does not affect the project's Python dependencies.
+
+First start is slow: Open WebUI downloads additional assets and sets up its own database on first launch.
 
 ## Connection details
 
@@ -81,3 +89,4 @@ uv run python src/ingest.py
 | Vector store | pgvector |
 | Graph / RAG logic | LangGraph |
 | UI | Streamlit |
+| Reference chat UI | Open WebUI |
