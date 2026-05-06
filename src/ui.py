@@ -1,10 +1,15 @@
+import os
 import uuid
 
 import streamlit as st
+from langchain_openai import ChatOpenAI
 
 from graph import build_graph, stream_answer
 from ingest import run as ingest_run
 from retriever import list_all, search
+
+LLM_HOST = os.environ.get("LLM_HOST", "http://localhost:8080/v1")
+LLM_MODEL = os.environ.get("LLM_MODEL", "qwen3.6-27b-instruct")
 
 
 @st.cache_resource
@@ -33,21 +38,24 @@ with st.sidebar:
 
     st.divider()
     if st.button("Clear chat history", use_container_width=True):
-        st.session_state.thread_id = str(uuid.uuid4())  # new thread = fresh memory
+        st.session_state.thread_id = str(uuid.uuid4())
         st.session_state.messages = []
         st.session_state.last_debug = None
+        st.session_state.free_messages = []
         st.rerun()
 
 # Initialise session state
 if "thread_id" not in st.session_state:
-    st.session_state.thread_id = str(uuid.uuid4())  # one thread per browser session
+    st.session_state.thread_id = str(uuid.uuid4())
 if "messages" not in st.session_state:
-    st.session_state.messages = []   # list of {"role", "content"} for display
+    st.session_state.messages = []
 if "last_debug" not in st.session_state:
-    st.session_state.last_debug = None  # debug data from the most recent turn
+    st.session_state.last_debug = None
+if "free_messages" not in st.session_state:
+    st.session_state.free_messages = []  # list of {"role", "content"}
 
 # --- Tabs ---
-search_tab, chat_tab, all_tab = st.tabs(["Search Docs", "Chat", "All Docs"])
+search_tab, chat_tab, free_chat_tab, all_tab = st.tabs(["Search Docs", "Chat about Docs", "Chat about anything", "All Docs"])
 
 with search_tab:
     query = st.text_input("Search", placeholder="e.g. Hound of the Baskervilles")
@@ -70,14 +78,12 @@ with search_tab:
 with chat_tab:
     debug_mode = st.toggle("Show debug panel")
 
-    # Scrollable message history — keeps chat_input visually at the bottom
     with st.container(height=500):
         for msg in st.session_state.messages:
             with st.chat_message(msg["role"]):
                 st.markdown(msg["content"])
 
-    # Chat input sits below the scrollable area
-    if question := st.chat_input("Ask about Sherlock Holmes stories..."):
+    if question := st.chat_input("Ask about Sherlock Holmes stories...", key="rag_input"):
         st.session_state.messages.append({"role": "user", "content": question})
 
         standalone = ""
@@ -85,8 +91,6 @@ with chat_tab:
         documents = []
         streamed = ""
 
-        # Stream the assistant reply below the history container while generating,
-        # then rerun to move it into the scrollable history above.
         with st.chat_message("assistant"):
             placeholder = st.empty()
             try:
@@ -112,7 +116,6 @@ with chat_tab:
         }
         st.rerun()
 
-    # Debug panel — always shows the latest turn only
     if debug_mode and st.session_state.last_debug:
         d = st.session_state.last_debug
         with st.expander("Debug — last turn", expanded=True):
@@ -127,6 +130,35 @@ with chat_tab:
                 total = doc.metadata.get("chunk_total", "")
                 st.markdown(f"*Chunk {i} — {title} [{idx}/{total}]*")
                 st.code(doc.page_content, language=None)
+
+with free_chat_tab:
+    with st.container(height=500):
+        for msg in st.session_state.free_messages:
+            with st.chat_message(msg["role"]):
+                st.markdown(msg["content"])
+
+    if question := st.chat_input("Ask anything...", key="free_input"):
+        st.session_state.free_messages.append({"role": "user", "content": question})
+
+        history = [
+            {"role": m["role"], "content": m["content"]}
+            for m in st.session_state.free_messages[:-1]
+        ]
+
+        with st.chat_message("assistant"):
+            placeholder = st.empty()
+            streamed = ""
+            try:
+                llm = ChatOpenAI(model=LLM_MODEL, base_url=LLM_HOST, api_key="sk-local", streaming=True)
+                for chunk in llm.stream(history + [{"role": "user", "content": question}]):
+                    if chunk.content:
+                        streamed += chunk.content
+                        placeholder.markdown(streamed)
+            except Exception as exc:
+                placeholder.error(f"Error: {exc}")
+
+        st.session_state.free_messages.append({"role": "assistant", "content": streamed})
+        st.rerun()
 
 with all_tab:
     if st.button("Load all docs", key="load_all_btn"):
