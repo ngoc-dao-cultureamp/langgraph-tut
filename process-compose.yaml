@@ -18,7 +18,7 @@ processes:
       period_seconds: 2
 
   llama-chat:
-    command: "llama-server --model models/$LLM_FILE --alias $LLM_MODEL --port 8080 --ctx-size 8192 -ngl 99"
+    command: "llama-server --model models/$LLM_FILE --alias $LLM_MODEL --port 8080 --ctx-size 49152 -ngl 99 -ctk q8_0 -ctv q8_0"
     readiness_probe:
       http_get:
         host: localhost

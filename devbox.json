@@ -19,9 +19,9 @@
       "DB_URL": "postgresql+psycopg://postgres@localhost:5432/ragdb",
       "LLM_HOST": "http://localhost:8080/v1",
       "EMBED_HOST": "http://localhost:8081/v1",
-      "LLM_MODEL": "qwen2.5-32b-instruct",
-      "LLM_FILE": "qwen2.5-32b-instruct-q4_k_m.gguf",
-      "LLM_REPO": "Qwen/Qwen2.5-32B-Instruct-GGUF",
+      "LLM_MODEL": "qwen3.6-27b-instruct",
+      "LLM_FILE": "qwen3.6-27b-abliterated-Q4_K_M.gguf",
+      "LLM_REPO": "Abiray/Huihui-Qwen3.6-27B-abliterated-GGUF",
       "EMBED_MODEL": "nomic-embed-text-v1.5",
       "EMBED_FILE": "nomic-embed-text-v1.5.Q8_0.gguf",
       "EMBED_REPO": "nomic-ai/nomic-embed-text-v1.5-GGUF"
