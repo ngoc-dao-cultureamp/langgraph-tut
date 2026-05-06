@@ -5,51 +5,67 @@
       "last_modified": "2026-04-27T06:11:55Z",
       "resolved": "github:NixOS/nixpkgs/6368eda62c9775c38ef7f714b2555a741c20c72d?lastModified=1777270315&narHash=sha256-yKB4G6cKsQsWN7M6rZGk6gkJPDNPIzT05y4qzRyCDlI%3D"
     },
-    "ollama@latest": {
-      "last_modified": "2026-04-16T08:46:55Z",
-      "resolved": "github:NixOS/nixpkgs/b86751bc4085f48661017fa226dee99fab6c651b#ollama",
+    "llama-cpp@latest": {
+      "last_modified": "2026-04-23T13:07:47Z",
+      "resolved": "github:NixOS/nixpkgs/01fbdeef22b76df85ea168fbfe1bfd9e63681b30#llama-cpp",
       "source": "devbox-search",
-      "version": "0.20.7",
+      "version": "8864",
       "systems": {
         "aarch64-darwin": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/jcj5hcn39cwvx7i5zs78qzhdsmfn8nf8-ollama-0.20.7",
+              "path": "/nix/store/i1r0qcx3p5v8qqn0cvxxny7zn1jd36q6-llama-cpp-8864",
               "default": true
+            },
+            {
+              "name": "dev",
+              "path": "/nix/store/kz7byjzbrgypr0sh180yy6plbnp79rwf-llama-cpp-8864-dev"
             }
           ],
-          "store_path": "/nix/store/jcj5hcn39cwvx7i5zs78qzhdsmfn8nf8-ollama-0.20.7"
+          "store_path": "/nix/store/i1r0qcx3p5v8qqn0cvxxny7zn1jd36q6-llama-cpp-8864"
         },
         "aarch64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/h23090pasdfc0dh0agq1m8akicf4ylm2-ollama-0.20.7",
+              "path": "/nix/store/fd800n2rj922nl0mb0a3z30zbns5iv6h-llama-cpp-8864",
               "default": true
+            },
+            {
+              "name": "dev",
+              "path": "/nix/store/rpl1bf0yx49mjk7gxhwzai63sr3rhzxa-llama-cpp-8864-dev"
             }
           ],
-          "store_path": "/nix/store/h23090pasdfc0dh0agq1m8akicf4ylm2-ollama-0.20.7"
+          "store_path": "/nix/store/fd800n2rj922nl0mb0a3z30zbns5iv6h-llama-cpp-8864"
         },
         "x86_64-darwin": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/scf6p787r12yil1m53129qnnzcn9msqn-ollama-0.20.7",
+              "path": "/nix/store/9d5cic6b623dbny1hy0kysw6g2lhh4sd-llama-cpp-8864",
               "default": true
+            },
+            {
+              "name": "dev",
+              "path": "/nix/store/28g1zjc05yfj1l4ak8wxj134bxg99bi0-llama-cpp-8864-dev"
             }
           ],
-          "store_path": "/nix/store/scf6p787r12yil1m53129qnnzcn9msqn-ollama-0.20.7"
+          "store_path": "/nix/store/9d5cic6b623dbny1hy0kysw6g2lhh4sd-llama-cpp-8864"
         },
         "x86_64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/x5w6vs5jr9s8xh96mm88ljvh57yssjjn-ollama-0.20.7",
+              "path": "/nix/store/h2lqc57mllbkxwkach1mml0wgnjnlziv-llama-cpp-8864",
               "default": true
+            },
+            {
+              "name": "dev",
+              "path": "/nix/store/hbn98kq157nbxvb5frrcglpb9kl2c43s-llama-cpp-8864-dev"
             }
           ],
-          "store_path": "/nix/store/x5w6vs5jr9s8xh96mm88ljvh57yssjjn-ollama-0.20.7"
+          "store_path": "/nix/store/h2lqc57mllbkxwkach1mml0wgnjnlziv-llama-cpp-8864"
         }
       }
     },
