@@ -24,8 +24,9 @@ processes:
         host: localhost
         port: 8080
         path: /health
-      initial_delay_seconds: 5
-      period_seconds: 3
+      initial_delay_seconds: 10
+      period_seconds: 5
+      failure_threshold: 30
 
   llama-embed:
     command: "llama-server --model models/$EMBED_FILE --alias $EMBED_MODEL --port 8081 --embedding --pooling mean -ngl 99"
@@ -34,8 +35,9 @@ processes:
         host: localhost
         port: 8081
         path: /health
-      initial_delay_seconds: 5
-      period_seconds: 3
+      initial_delay_seconds: 10
+      period_seconds: 5
+      failure_threshold: 30
 
   open-webui:
     command: "uvx open-webui serve"
