@@ -20,7 +20,11 @@
       "LLM_HOST": "http://localhost:8080/v1",
       "EMBED_HOST": "http://localhost:8081/v1",
       "LLM_MODEL": "qwen2.5-32b-instruct",
-      "EMBED_MODEL": "nomic-embed-text-v1.5"
+      "LLM_FILE": "qwen2.5-32b-instruct-q4_k_m.gguf",
+      "LLM_REPO": "Qwen/Qwen2.5-32B-Instruct-GGUF",
+      "EMBED_MODEL": "nomic-embed-text-v1.5",
+      "EMBED_FILE": "nomic-embed-text-v1.5.Q8_0.gguf",
+      "EMBED_REPO": "nomic-ai/nomic-embed-text-v1.5-GGUF"
     },
     "scripts": {
       "db-reset": [
@@ -32,7 +36,7 @@
         "psql -U postgres -d ragdb -c 'CREATE EXTENSION IF NOT EXISTS vector;'",
         "pg_ctl stop -D $PGDATA"
       ],
-      "model-pull": ["huggingface-cli download Qwen/Qwen2.5-32B-Instruct-GGUF qwen2.5-32b-instruct-q4_k_m.gguf --local-dir models/", "huggingface-cli download nomic-ai/nomic-embed-text-v1.5-GGUF nomic-embed-text-v1.5.Q8_0.gguf --local-dir models/"],
+      "model-pull": ["huggingface-cli download $LLM_REPO $LLM_FILE --local-dir models/", "huggingface-cli download $EMBED_REPO $EMBED_FILE --local-dir models/"],
       "ui": ["uv run streamlit run src/ui.py"]
     }
   }

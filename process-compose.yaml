@@ -18,7 +18,7 @@ processes:
       period_seconds: 2
 
   llama-chat:
-    command: "llama-server --model models/qwen2.5-32b-instruct-q4_k_m.gguf --port 8080 --ctx-size 8192 -ngl 99"
+    command: "llama-server --model models/$LLM_FILE --alias $LLM_MODEL --port 8080 --ctx-size 8192 -ngl 99"
     readiness_probe:
       http_get:
         host: localhost
@@ -28,7 +28,7 @@ processes:
       period_seconds: 3
 
   llama-embed:
-    command: "llama-server --model models/nomic-embed-text-v1.5.Q8_0.gguf --port 8081 --embedding --pooling mean -ngl 99"
+    command: "llama-server --model models/$EMBED_FILE --alias $EMBED_MODEL --port 8081 --embedding --pooling mean -ngl 99"
     readiness_probe:
       http_get:
         host: localhost

@@ -1,6 +1,6 @@
 # LangGraph RAG Tutorial
 
-A minimal RAG app using LangGraph, PostgreSQL + pgvector, Ollama, and Streamlit.
+A minimal RAG app using LangGraph, PostgreSQL + pgvector, llama.cpp, and Streamlit.
 
 ## Prerequisites
 
@@ -20,32 +20,25 @@ devbox shell
 uv sync
 ```
 
-### 3. Copy and configure environment variables
+### 3. Download models (first time only)
 
 ```bash
-cp .env.example .env
-# Edit .env if your paths or ports differ
+devbox run model-pull
 ```
 
-### 4. Pull Ollama models (first time only)
+Downloads `$LLM_FILE` (`$LLM_REPO`) and `$EMBED_FILE` (`$EMBED_REPO`) into `models/`.
 
-```bash
-devbox run ollama-pull
-```
+`$LLM_MODEL` runs well on both M3 Max (36GB) and RTX 3090 (24GB VRAM).
 
-This pulls `snowflake-arctic-embed2` (embedding model) and `qwen2.5:32b` (LLM).
-
-`qwen2.5:32b` runs well on both M3 Max (36GB) and RTX 3090 (24GB VRAM).
-
-### 5. Start services
+### 4. Start services
 
 ```bash
 devbox services up
 ```
 
-Starts PostgreSQL (with pgvector) and Ollama together. On first run, PostgreSQL is automatically initialised and the `vector` extension enabled.
+Starts PostgreSQL, two llama-server instances, and Open WebUI. On first run, PostgreSQL is automatically initialised and the `vector` extension enabled.
 
-### 6. Ingest documents
+### 5. Ingest documents
 
 ```bash
 uv run python src/ingest.py
@@ -55,14 +48,23 @@ uv run python src/ingest.py
 
 | Command | Description |
 |---|---|
-| `devbox services up` | Start PostgreSQL, Ollama, and Open WebUI |
+| `devbox services up` | Start PostgreSQL, llama-server (chat + embed), and Open WebUI |
 | `devbox services down` | Stop all services |
 | `devbox run db-reset` | Wipe and reinitialise the database |
-| `devbox run ollama-pull` | Pull embedding model + LLM (first time only) |
+| `devbox run model-pull` | Download embedding model + LLM (first time only) |
+
+### llama-server ports
+
+| Service | Port | Purpose |
+|---|---|---|
+| `llama-chat` | `8080` | LLM (`$LLM_MODEL`) — chat completions |
+| `llama-embed` | `8081` | Embeddings (`$EMBED_MODEL`) |
+
+Both expose an OpenAI-compatible API (`/v1`).
 
 ### Open WebUI
 
-`devbox services up` also starts [Open WebUI](https://github.com/open-webui/open-webui) at **http://localhost:8080** — a self-hosted ChatGPT-like interface for all Ollama models.
+`devbox services up` also starts [Open WebUI](https://github.com/open-webui/open-webui) at **http://localhost:3000** — a self-hosted ChatGPT-like interface pointed at the llama-chat server.
 
 It runs in an isolated environment via `uvx` so it does not affect the project's Python dependencies.
 
@@ -74,9 +76,9 @@ First start is slow: Open WebUI downloads additional assets and sets up its own 
 |---|---|
 | Host | `localhost` |
 | Port | `5432` |
-| User | `postgres` |
-| Database | `ragdb` |
-| URL | `postgresql://postgres@localhost:5432/ragdb` |
+| User | `$PGUSER` |
+| Database | `$PGDATABASE` |
+| URL | `$DB_URL` |
 
 ## Stack
 
@@ -84,7 +86,7 @@ First start is slow: Open WebUI downloads additional assets and sets up its own 
 |---|---|
 | Python + app tooling | Devbox |
 | PostgreSQL + pgvector | Devbox (Nix flake) |
-| LLM inference (local) | Ollama |
+| LLM inference (local) | llama.cpp |
 | LLM inference (AWS) | AWS Bedrock |
 | Vector store | pgvector |
 | Graph / RAG logic | LangGraph |
