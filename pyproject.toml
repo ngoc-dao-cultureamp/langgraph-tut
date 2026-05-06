@@ -8,7 +8,6 @@ dependencies = [
     "langchain-openai>=0.3",
     "langchain-postgres>=0.0.12",
     "psycopg[binary]>=3.2",
-    "python-dotenv>=1.0",
     "streamlit>=1.45",
 ]
 

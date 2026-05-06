@@ -9,11 +9,19 @@
   "shell": {
     "init_hook": [
       "export PGDATA=\"$PWD/.pgdata\"",
-      "export PGHOST=localhost",
-      "export PGUSER=postgres",
-      "export PGDATABASE=ragdb",
-      "export PYTHONPATH=\"$PWD/src\""
+      "export PYTHONPATH=\"$PWD/src\"",
+      "export BOOKS_DIR=\"$PWD/sherlock_holmes\""
     ],
+    "env": {
+      "PGHOST": "localhost",
+      "PGUSER": "postgres",
+      "PGDATABASE": "ragdb",
+      "DB_URL": "postgresql+psycopg://postgres@localhost:5432/ragdb",
+      "LLM_HOST": "http://localhost:8080/v1",
+      "EMBED_HOST": "http://localhost:8081/v1",
+      "LLM_MODEL": "qwen2.5-32b-instruct",
+      "EMBED_MODEL": "nomic-embed-text-v1.5"
+    },
     "scripts": {
       "db-reset": [
         "pg_ctl stop -D $PGDATA || true",

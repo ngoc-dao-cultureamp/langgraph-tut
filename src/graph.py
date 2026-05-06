@@ -1,7 +1,6 @@
 import os
 from collections.abc import Generator
 
-from dotenv import load_dotenv
 from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
@@ -11,8 +10,6 @@ from langgraph.graph import END, START, StateGraph
 
 from retriever import search
 from state import RAGState
-
-load_dotenv()
 
 LLM_MODEL = os.environ.get("LLM_MODEL", "qwen2.5-32b-instruct")
 LLM_HOST = os.environ.get("LLM_HOST", "http://localhost:8080/v1")

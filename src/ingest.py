@@ -4,13 +4,10 @@ import os
 import re
 from pathlib import Path
 
-from dotenv import load_dotenv
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from store import get_vector_store
-
-load_dotenv()
 
 BOOKS_DIR = Path(os.environ["BOOKS_DIR"])
 

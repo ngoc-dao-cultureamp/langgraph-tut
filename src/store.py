@@ -1,10 +1,7 @@
 import os
 
-from dotenv import load_dotenv
 from langchain_openai import OpenAIEmbeddings
 from langchain_postgres import PGVector
-
-load_dotenv()
 
 DB_URL = os.environ["DB_URL"]
 EMBED_MODEL = os.environ.get("EMBED_MODEL", "nomic-embed-text-v1.5")
