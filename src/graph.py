@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_ollama import ChatOllama
+from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 
@@ -14,8 +14,8 @@ from state import RAGState
 
 load_dotenv()
 
-LLM_MODEL = os.environ.get("LLM_MODEL", "qwen2.5:32b")
-OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
+LLM_MODEL = os.environ.get("LLM_MODEL", "qwen2.5-32b-instruct")
+LLM_HOST = os.environ.get("LLM_HOST", "http://localhost:8080/v1")
 
 _FILTER_PROMPT = ChatPromptTemplate.from_template(
     "Is the following question related to Sherlock Holmes stories, characters, or plots? "
@@ -49,7 +49,7 @@ _ANSWER_PROMPT = ChatPromptTemplate.from_template(
 
 
 def _filter(state: RAGState) -> RAGState:
-    llm = ChatOllama(model=LLM_MODEL, base_url=OLLAMA_HOST)
+    llm = ChatOpenAI(model=LLM_MODEL, base_url=LLM_HOST, api_key="sk-local")
     chain = _FILTER_PROMPT | llm | StrOutputParser()
     verdict = chain.invoke({"question": state["question"]}).strip().lower()
     if not verdict.startswith("yes"):
@@ -66,14 +66,14 @@ def _rewrite(state: RAGState) -> RAGState:
     history = state.get("history", "(none)") or "(none)"
     if history == "(none)":
         return {"standalone_question": state["question"]}
-    llm = ChatOllama(model=LLM_MODEL, base_url=OLLAMA_HOST)
+    llm = ChatOpenAI(model=LLM_MODEL, base_url=LLM_HOST, api_key="sk-local")
     chain = _REWRITE_PROMPT | llm | StrOutputParser()
     standalone = chain.invoke({"history": history, "question": state["question"]})
     return {"standalone_question": standalone}
 
 
 def _hypothesize(state: RAGState) -> RAGState:
-    llm = ChatOllama(model=LLM_MODEL, base_url=OLLAMA_HOST)
+    llm = ChatOpenAI(model=LLM_MODEL, base_url=LLM_HOST, api_key="sk-local")
     chain = _HYDE_PROMPT | llm | StrOutputParser()
     hypothesis = chain.invoke({"question": state["standalone_question"]})
     return {"hypothesis": hypothesis}
@@ -95,7 +95,7 @@ def _retrieve(state: RAGState) -> RAGState:
 
 def _generate(state: RAGState) -> RAGState:
     context = "\n\n".join(doc.page_content for doc in state["documents"])
-    llm = ChatOllama(model=LLM_MODEL, base_url=OLLAMA_HOST)
+    llm = ChatOpenAI(model=LLM_MODEL, base_url=LLM_HOST, api_key="sk-local")
     chain = _ANSWER_PROMPT | llm | StrOutputParser()
     answer = chain.invoke({
         "history": state.get("history", "(none)") or "(none)",

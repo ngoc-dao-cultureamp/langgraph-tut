@@ -5,7 +5,7 @@ requires-python = ">=3.12"
 dependencies = [
     "langgraph>=0.3",
     "langchain>=0.3",
-    "langchain-ollama>=0.3",
+    "langchain-openai>=0.3",
     "langchain-postgres>=0.0.12",
     "psycopg[binary]>=3.2",
     "python-dotenv>=1.0",

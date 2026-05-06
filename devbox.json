@@ -3,7 +3,7 @@
   "packages": [
     "python@3.12",
     "path:.#default",
-    "ollama@latest",
+    "llama-cpp@latest",
     "uv@latest"
   ],
   "shell": {
@@ -24,7 +24,7 @@
         "psql -U postgres -d ragdb -c 'CREATE EXTENSION IF NOT EXISTS vector;'",
         "pg_ctl stop -D $PGDATA"
       ],
-      "ollama-pull": ["ollama pull snowflake-arctic-embed2", "ollama pull qwen2.5:32b"],
+      "model-pull": ["huggingface-cli download Qwen/Qwen2.5-32B-Instruct-GGUF qwen2.5-32b-instruct-q4_k_m.gguf --local-dir models/", "huggingface-cli download nomic-ai/nomic-embed-text-v1.5-GGUF nomic-embed-text-v1.5.Q8_0.gguf --local-dir models/"],
       "ui": ["uv run streamlit run src/ui.py"]
     }
   }

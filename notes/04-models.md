@@ -4,10 +4,10 @@
 
 | Machine | Chip | Memory | Backend |
 |---|---|---|---|
-| MacBook | Apple M3 Max | 36GB unified RAM | Metal (via Ollama) |
-| Workstation | NVIDIA RTX 3090 | 24GB VRAM | CUDA (via `ollama-cuda`) |
+| MacBook | Apple M3 Max | 36GB unified RAM | Metal (via llama.cpp `-ngl 99`) |
+| Workstation | NVIDIA RTX 3090 | 24GB VRAM | CUDA (via llama.cpp `-ngl 99`) |
 
-## LLM: qwen2.5:32b
+## LLM: qwen2.5-32b-instruct (GGUF)
 
 Chosen for both machines — fits comfortably on 36GB (Mac) and 24GB VRAM (RTX 3090).
 
@@ -18,7 +18,7 @@ Chosen for both machines — fits comfortably on 36GB (Mac) and 24GB VRAM (RTX 3
 | Parameters | 31B (non-embedding) |
 | Context window | 128K tokens |
 | Max output | 8K tokens |
-| Disk size (Ollama, Q4) | ~20GB |
+| Disk size (Q4_K_M GGUF) | ~20GB |
 | Languages | 29+ (English, Chinese, French, Spanish, etc.) |
 | License | Apache 2.0 |
 
@@ -54,42 +54,49 @@ Among the 30B-class peers, qwen2.5 leads on coding, math, and structured output.
   several retrieved passages)
 
 ```bash
-ollama pull qwen2.5:32b
+# Download GGUF (devbox script)
+devbox run model-pull
 ```
 
-On the RTX 3090 machine, install `ollama-cuda` instead of `ollama` in `devbox.json`.
-
-## Embedding model: snowflake-arctic-embed2
+## Embedding model: nomic-embed-text-v1.5 (GGUF)
 
 | Property | Value |
 |---|---|
-| Size | ~1.2GB |
-| Dimensions | 1024 |
+| Size | ~370MB (Q8_0 GGUF) |
+| Dimensions | 768 |
 | Context window | 8192 tokens |
-| Benchmark | Top-tier on MTEB retrieval |
+| Benchmark | Top-tier on MTEB retrieval (open-source) |
 
-The large context window means chunks can be kept large without truncation.
-Embedding models are much smaller than LLMs — hardware barely matters for them.
+llama.cpp serves it on port 8081 with `--embedding --pooling mean`. The pooling mode
+matters: `mean` averaging over token embeddings gives the best retrieval quality for
+this model (matching how it was trained).
 
-```bash
-ollama pull snowflake-arctic-embed2
-```
+**Important:** switching from snowflake-arctic-embed2 (1024 dims) to nomic-embed-text
+(768 dims) changes the vector space — you must re-ingest all documents after the swap.
 
-## Why separate embedding and LLM models?
+## Why two llama-server processes?
 
-- The embedding model runs at both ingest time and query time
-- The LLM only runs at query time
-- Embedding models are optimised for similarity, not generation
-- Using the same embedding model for ingestion and retrieval is required —
-  mismatched models produce incompatible vector spaces
+llama.cpp loads one model per server process. Embedding and generation are separate
+models, so they run as `llama-chat` (port 8080) and `llama-embed` (port 8081).
+Both expose an OpenAI-compatible API, so the Python code uses `langchain-openai`
+with a custom `base_url` — no special Ollama client needed.
+
+## Why llama.cpp over Ollama?
+
+- **Direct control** — flags like `--ctx-size`, `--pooling`, `--batch-size` are
+  explicit; Ollama hides them behind a modelfile abstraction
+- **No daemon surprises** — Ollama's background process can restart models or
+  swap context at unexpected times; llama-server is a single predictable process
+- **GGUF-native** — llama.cpp is the reference GGUF runtime; Ollama wraps it
+  anyway, adding a layer you don't need
 
 ## AWS Bedrock (future deployment)
 
-Replace `ChatOllama` with `ChatBedrock` by setting `LLM_PROVIDER=bedrock` in `.env`.
+Replace `ChatOpenAI` with `ChatBedrock` by setting `LLM_PROVIDER=bedrock` in `.env`.
 Good model choices on Bedrock:
 - `anthropic.claude-3-5-sonnet-20241022-v2:0` — highest quality
 - `amazon.nova-pro-v1:0` — cheaper, still good
 
-Embeddings on AWS: swap `OllamaEmbeddings` for `BedrockEmbeddings` with
-`amazon.titan-embed-text-v2:0`. Note: dimensions differ from snowflake-arctic-embed2,
+Embeddings on AWS: swap `OpenAIEmbeddings` for `BedrockEmbeddings` with
+`amazon.titan-embed-text-v2:0`. Note: dimensions differ from nomic-embed-text,
 so you must re-ingest all documents when switching embedding models.

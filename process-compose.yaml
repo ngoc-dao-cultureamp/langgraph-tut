@@ -17,20 +17,31 @@ processes:
       initial_delay_seconds: 2
       period_seconds: 2
 
-  ollama:
-    command: "ollama serve"
+  llama-chat:
+    command: "llama-server --model models/qwen2.5-32b-instruct-q4_k_m.gguf --port 8080 --ctx-size 8192 -ngl 99"
     readiness_probe:
       http_get:
         host: localhost
-        port: 11434
-        path: /
-      initial_delay_seconds: 2
-      period_seconds: 2
+        port: 8080
+        path: /health
+      initial_delay_seconds: 5
+      period_seconds: 3
+
+  llama-embed:
+    command: "llama-server --model models/nomic-embed-text-v1.5.Q8_0.gguf --port 8081 --embedding --pooling mean -ngl 99"
+    readiness_probe:
+      http_get:
+        host: localhost
+        port: 8081
+        path: /health
+      initial_delay_seconds: 5
+      period_seconds: 3
 
   open-webui:
     command: "uvx open-webui serve"
     environment:
-      - OLLAMA_BASE_URL=http://localhost:11434
+      - OPENAI_API_BASE_URL=http://localhost:8080/v1
+      - OPENAI_API_KEY=sk-local
     depends_on:
-      ollama:
+      llama-chat:
         condition: process_healthy
