@@ -31,6 +31,5 @@ Both expose an OpenAI-compatible API, so the Python code (`langchain-openai`) is
 Started locally with `devbox services up` via process-compose:
 
 - **postgres** — PostgreSQL 17 with pgvector, data in `.pgdata/`
-- **llama-chat** — LLM inference on port 8080, model file in `models/`
+- **llama-chat** — LLM inference on port 8080, model file in `models/`; built-in chat UI at http://localhost:8080
 - **llama-embed** — Embedding inference on port 8081, model file in `models/`
-- **open-webui** — Chat UI on port 3000, backed by llama-chat

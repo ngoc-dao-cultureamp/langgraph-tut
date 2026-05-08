@@ -60,15 +60,7 @@ uv run python src/ingest.py
 | `llama-chat` | `8080` | LLM (`$LLM_MODEL_ALIAS`) — chat completions |
 | `llama-embed` | `8081` | Embeddings (`$EMBED_MODEL_ALIAS`) |
 
-Both expose an OpenAI-compatible API (`/v1`).
-
-### Open WebUI
-
-`devbox services up` also starts [Open WebUI](https://github.com/open-webui/open-webui) at **http://localhost:3000** — a self-hosted ChatGPT-like interface pointed at the llama-chat server.
-
-It runs in an isolated environment via `uvx` so it does not affect the project's Python dependencies.
-
-First start is slow: Open WebUI downloads additional assets and sets up its own database on first launch.
+Both expose an OpenAI-compatible API (`/v1`). `llama-chat` also serves a built-in chat UI at **http://localhost:8080** — open it in a browser for quick ad-hoc prompts without the RAG pipeline.
 
 ## Connection details
 

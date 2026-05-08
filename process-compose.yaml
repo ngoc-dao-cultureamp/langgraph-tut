@@ -38,12 +38,3 @@ processes:
       initial_delay_seconds: 10
       period_seconds: 5
       failure_threshold: 30
-
-  open-webui:
-    command: "uvx open-webui serve"
-    environment:
-      - OPENAI_API_BASE_URL=http://localhost:8080/v1
-      - OPENAI_API_KEY=sk-local
-    depends_on:
-      llama-chat:
-        condition: process_healthy
