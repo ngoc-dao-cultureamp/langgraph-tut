@@ -25,12 +25,33 @@ GGUF is the file format llama.cpp uses. Quantization reduces precision to save m
 
 ### Refusal removal
 
-Instruction-tuned models are trained to refuse certain requests. Two main techniques:
+Instruction-tuned models are trained to refuse certain requests ("I can't help with that"). For a RAG app this matters because edge-case phrasings of legitimate questions can trigger false refusals.
 
-- **Mean-diff abliteration** — find the refusal direction via difference of means in activation space, subtract it from the weights. Classic, well-understood.
-- **Wasserstein distance** — uses optimal-transport geometry to find the refusal direction. Newer; claims more thorough removal with less collateral damage to capability.
+#### Community naming conventions
 
-Both are post-processing steps on the weights, not fine-tunes. For a RAG app, this prevents false refusals on edge-case question phrasings.
+- **"Abliterated"** — weights were post-processed using an activation-space technique (see below). No new training data involved.
+- **"Uncensored"** — usually means fine-tuned on a dataset that excluded refusal examples (e.g. Eric Hartford's uncensored datasets). Sometimes used loosely to mean abliterated.
+- **"Heretic"** — a specific community variant (Youssofal) that combines abliteration with additional merging steps.
+- These terms are **not standardised** — always check the model card.
+
+#### Post-processing techniques (no retraining)
+
+Both work by finding the "refusal direction" in the model's residual stream and projecting it out of the weight matrices. The difference is *how* that direction is found:
+
+| Technique | How direction is found | Notes |
+|---|---|---|
+| **Mean-diff abliteration** (Failspy, 2024) | Average activations on "harmful" prompts minus average on "harmless" prompts | Classic, fast, well-understood |
+| **Wasserstein abliteration** (LuffyTheFox) | Optimal-transport geometry between harmful/harmless activation distributions | Newer; claims more thorough removal with less capability damage |
+
+Neither is a fine-tune — they directly modify weight tensors. The model tokenizer/architecture is unchanged; only floating-point values shift.
+
+#### Fine-tune based uncensoring
+
+Train (or LoRA-adapt) the model on curated datasets that demonstrate helpful responses to refused topics. Slower to produce, but can yield more nuanced behaviour than pure activation surgery. Eric Hartford's `WizardLM-uncensored` datasets pioneered this approach.
+
+#### Merge-based approaches
+
+Blend a safety-trained model with a base (pre-RLHF) checkpoint using techniques like SLERP, TIES, or DARE. The safety layers get diluted by the base weights. Quality depends heavily on the merge ratio and which layers are targeted.
 
 ### Model weight formats
 
