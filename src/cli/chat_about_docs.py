@@ -7,8 +7,8 @@ Requires PostgreSQL and llama-server to be running:
     devbox services up
 
 Usage:
-    uv run python src/cli_chat_about_docs.py              # reasoning on (default)
-    uv run python src/cli_chat_about_docs.py --no-think  # reasoning off
+    uv run python src/cli/chat_about_docs.py              # reasoning on (default)
+    uv run python src/cli/chat_about_docs.py --no-think  # reasoning off
 
 Intermediate graph steps (standalone question, hypothesis, doc count) are
 printed in dim grey. Reasoning tokens are printed in dim grey. Answer tokens

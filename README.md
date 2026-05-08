@@ -59,7 +59,7 @@ Opens the Streamlit app at **http://localhost:8501** with two tabs:
 ### CLI — Chat about Docs (tests the full LangGraph pipeline)
 
 ```bash
-devbox run -- uv run python src/cli_chat_about_docs.py
+devbox run -- uv run python src/cli/chat_about_docs.py
 ```
 
 Requires PostgreSQL and llama-server to be running (`devbox services up`). Shows intermediate pipeline steps (standalone question, hypothesis, chunk count) and reasoning tokens in dim grey.
@@ -67,7 +67,7 @@ Requires PostgreSQL and llama-server to be running (`devbox services up`). Shows
 ### CLI — Chat about anything (tests LLM streaming only, no DB needed)
 
 ```bash
-devbox run -- uv run python src/cli_chat_about_anything.py
+devbox run -- uv run python src/cli/chat_about_anything.py
 ```
 
 Only requires llama-server (`llama-chat` on port 8080). Useful for verifying reasoning/thinking token streaming works without any database dependency.

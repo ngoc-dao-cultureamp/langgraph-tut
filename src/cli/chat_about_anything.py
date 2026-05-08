@@ -3,8 +3,8 @@
 Useful for verifying that reasoning/thinking streaming works end-to-end.
 
 Usage:
-    uv run python src/cli_chat_about_anything.py           # reasoning on (default)
-    uv run python src/cli_chat_about_anything.py --no-think  # reasoning off
+    uv run python src/cli/chat_about_anything.py           # reasoning on (default)
+    uv run python src/cli/chat_about_anything.py --no-think  # reasoning off
 
 Reasoning tokens are printed dimmed in grey; answer tokens are printed normally.
 Press Ctrl-C or Ctrl-D to exit.
