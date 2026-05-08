@@ -7,12 +7,16 @@ vector. If you embed an entire book, you get one vector that averages the meanin
 everything — useless for retrieval. Chunking breaks the text into small, semantically
 focused pieces so each vector captures a specific idea.
 
-## Two kinds of input in this project
+## Two kinds of input
 
-| Source | Format | Needs chunking? |
+RAG pipelines commonly handle two types of source material:
+
+| Source | Format | Chunking needed? |
 |---|---|---|
-| Internal docs (`DOCS_DIR`) | Pre-chunked `.txt` with YAML frontmatter | No — one file = one chunk |
-| Sherlock Holmes books (`BOOKS_DIR`) | Long-form Gutenberg plain text | Yes |
+| Pre-structured docs | Short files, one topic per file | No — one file = one chunk |
+| Long-form text (books, reports, transcripts) | Continuous prose | Yes |
+
+For pre-structured docs, the file boundary is already a meaningful semantic unit. For long-form text, you must split explicitly.
 
 ## RecursiveCharacterTextSplitter
 
@@ -25,38 +29,36 @@ too long. This keeps paragraphs intact wherever possible.
 RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
 ```
 
-- **chunk_size=1000** — ~200–250 tokens per chunk. The embedding model's 8192-token
-  limit is a ceiling, not a target. Smaller chunks have more focused meaning, so their
-  vectors score higher on relevant queries. A chunk covering one scene or idea retrieves
-  better than a chunk covering an entire chapter.
-- **chunk_overlap=150** — the last 150 characters of each chunk are repeated at the
-  start of the next. This prevents losing context when a sentence or idea spans a
-  split boundary.
+- **chunk_size=1000** — ~200–250 tokens per chunk (assuming ~4 chars/token). The embedding model's context limit is a ceiling, not a target. Smaller chunks have more focused meaning, so their vectors score higher on relevant queries. A chunk covering one scene or idea retrieves better than a chunk covering an entire chapter.
+- **chunk_overlap=150** — the last 150 characters of each chunk are repeated at the start of the next. This prevents losing context when a sentence or idea spans a split boundary.
 
-## Gutenberg boilerplate stripping
+## Boilerplate stripping
 
-Project Gutenberg files include a long legal header and footer. These are stripped
-before chunking using the standard markers:
+Many long-form sources include headers, footers, or legal text that is irrelevant to the content (e.g. Project Gutenberg licensing blocks, document cover pages). Strip these before chunking — otherwise they end up in the vector store and pollute retrieval results.
+
+Use reliable start/end markers when available:
 
 ```
 *** START OF THE PROJECT GUTENBERG EBOOK <title> ***
 *** END OF THE PROJECT GUTENBERG EBOOK <title> ***
 ```
 
-Without stripping, the boilerplate would end up in the vector store and pollute
-retrieval results with licensing text.
+For other sources, strip by regex, line count, or structural cues (e.g. first `<body>` tag in HTML).
 
 ## Chunk metadata
 
-Each book chunk stores:
-- `source` — filename
-- `title` — book title
-- `author` — Arthur Conan Doyle
-- `topic` — same as title (used by the UI for display)
-- `type` — "book" (distinguishes from internal docs)
-- `chunk_index` / `chunk_total` — position in the book, useful for debugging
+Store metadata alongside each chunk to support filtering and debugging:
+- **Source** — filename or URL
+- **Title / author** — document identity
+- **Topic / type** — used for UI display and metadata filtering
+- **Chunk index / total** — position in the source document, useful for debugging retrieval
 
-## Chunk count
+Metadata is stored in pgvector's `cmetadata` JSONB column and can be filtered in queries.
 
-A typical Sherlock Holmes book (~300–600 KB) produces ~400–800 chunks at chunk_size=1000.
-The full 9-book corpus produces several thousand chunks on top of the 316 internal docs.
+## Expected chunk counts
+
+A rough guide for prose text at chunk_size=1000:
+- ~300–600 KB source file → ~400–800 chunks
+- Plan for several thousand chunks across a full corpus
+
+Actual counts vary with paragraph density and overlap settings.
