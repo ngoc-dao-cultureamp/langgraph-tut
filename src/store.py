@@ -4,8 +4,8 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_postgres import PGVector
 
 DB_URL = os.environ["DB_URL"]
-EMBED_MODEL = os.environ.get("EMBED_MODEL", "nomic-embed-text-v1.5")
-EMBED_HOST = os.environ.get("EMBED_HOST", "http://localhost:8081/v1")
+EMBED_HOST = os.environ.get("EMBED_HOST")
+EMBED_MODEL = os.environ.get("EMBED_MODEL")
 COLLECTION_NAME = "docs"
 
 

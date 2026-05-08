@@ -17,12 +17,12 @@
       "export DB_URL=postgresql+psycopg://postgres@localhost:5432/ragdb",
       "export LLM_HOST=http://localhost:8080/v1",
       "export EMBED_HOST=http://localhost:8081/v1",
-      "export LLM_MODEL=qwen3.6-27b-instruct",
-      "export LLM_FILE=qwen3.6-27b-abliterated-Q4_K_M.gguf",
-      "export LLM_REPO=Abiray/Huihui-Qwen3.6-27B-abliterated-GGUF",
-      "export EMBED_MODEL=nomic-embed-text-v1.5",
+      "export LLM_REPO=LuffyTheFox/Qwen3.6-35B-A3B-Uncensored-Wasserstein-GGUF",
+      "export LLM_FILE=Qwen3.6-35B-A3B-Uncensored.Q4_K_P.gguf",
+      "export LLM_MODEL=qwen3.6-35b-a3b",
+      "export EMBED_REPO=nomic-ai/nomic-embed-text-v1.5-GGUF",
       "export EMBED_FILE=nomic-embed-text-v1.5.Q8_0.gguf",
-      "export EMBED_REPO=nomic-ai/nomic-embed-text-v1.5-GGUF"
+      "export EMBED_MODEL=nomic-embed-text-v1.5"
     ],
     "scripts": {
       "db-reset": [

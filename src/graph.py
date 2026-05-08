@@ -11,8 +11,8 @@ from langgraph.graph import END, START, StateGraph
 from retriever import search
 from state import RAGState
 
-LLM_MODEL = os.environ.get("LLM_MODEL", "qwen2.5-32b-instruct")
-LLM_HOST = os.environ.get("LLM_HOST", "http://localhost:8080/v1")
+LLM_HOST = os.environ.get("LLM_HOST")
+LLM_MODEL = os.environ.get("LLM_MODEL")
 
 _FILTER_PROMPT = ChatPromptTemplate.from_template(
     "Is the following question related to Sherlock Holmes stories, characters, or plots? "

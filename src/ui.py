@@ -8,8 +8,8 @@ from graph import build_graph, stream_answer
 from ingest import run as ingest_run
 from retriever import list_all, search
 
-LLM_HOST = os.environ.get("LLM_HOST", "http://localhost:8080/v1")
-LLM_MODEL = os.environ.get("LLM_MODEL", "qwen3.6-27b-instruct")
+LLM_HOST = os.environ.get("LLM_HOST")
+LLM_MODEL = os.environ.get("LLM_MODEL")
 
 
 @st.cache_resource
