@@ -13,9 +13,10 @@ processes:
       exec postgres -D "$PGDATA"
     readiness_probe:
       exec:
-        command: "pg_isready -U postgres -d ragdb"
+        command: "pg_isready -h localhost -U postgres -d ragdb"
       initial_delay_seconds: 2
-      period_seconds: 2
+      period_seconds: 5
+      failure_threshold: 10
 
   llama-chat:
     command: "llama-server --model models/$LLM_FILE --alias $LLM_MODEL_ALIAS --port 8080 --ctx-size 49152 -ngl 99 -ctk q8_0 -ctv q8_0"
