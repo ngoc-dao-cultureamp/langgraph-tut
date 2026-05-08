@@ -90,6 +90,14 @@ devbox run -- uv run python src/cli/chat_about_anything.py
 
 Only requires llama-server (`llama-chat` on port 8080). Useful for verifying reasoning/thinking token streaming works without any database dependency.
 
+### CLI — Evaluation (LLM-as-judge quality metrics)
+
+```bash
+devbox run eval
+```
+
+Runs a fixed set of Sherlock Holmes questions through the full RAG pipeline and scores each answer on faithfulness, answer relevance, context relevance, and correctness using the LLM as judge. Reasoning is disabled for all calls to keep evaluation fast. Requires PostgreSQL and llama-server.
+
 ## Services
 
 | Command | Description |

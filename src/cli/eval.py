@@ -72,7 +72,13 @@ _CORRECTNESS_PROMPT = ChatPromptTemplate.from_template(
 
 
 def _judge(prompt: ChatPromptTemplate, **kwargs) -> tuple[float, str]:
-    llm = ChatOpenAI(model=LLM_MODEL_ALIAS, base_url=LLM_HOST, api_key="sk-local")
+    # Disable reasoning — judge calls are short classification tasks that don't benefit from it.
+    llm = ChatOpenAI(
+        model=LLM_MODEL_ALIAS,
+        base_url=LLM_HOST,
+        api_key="sk-local",
+        extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+    )
     try:
         result = (prompt | llm | JsonOutputParser()).invoke(kwargs)
         return float(result["score"]), result.get("reason", "")
@@ -83,7 +89,7 @@ def _judge(prompt: ChatPromptTemplate, **kwargs) -> tuple[float, str]:
 def _run_one(graph, q: dict) -> dict:
     answer = ""
     documents = []
-    for event, payload in stream_answer(q["question"], graph, str(uuid.uuid4())):
+    for event, payload in stream_answer(q["question"], graph, str(uuid.uuid4()), enable_reasoning=False):
         if event == "docs":
             documents = payload
         elif event == "token":
