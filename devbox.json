@@ -8,9 +8,9 @@
   ],
   "shell": {
     "init_hook": [
-      "export PGDATA=\"$PWD/.pgdata\"",
       "export PYTHONPATH=\"$PWD/src\"",
       "export BOOKS_DIR=\"$PWD/sherlock_holmes\"",
+      "export PGDATA=\"$PWD/.pgdata\"",
       "export PGHOST=localhost",
       "export PGUSER=postgres",
       "export PGDATABASE=ragdb",
