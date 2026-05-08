@@ -1,11 +1,15 @@
 # Models
 
-## Hardware
+## Choosing a model for local RAG
 
-| Machine | Chip | Memory | Backend |
-|---|---|---|---|
-| MacBook | Apple M3 Max | 36GB unified RAM | Metal (via llama.cpp `-ngl 99`) |
-| Workstation | NVIDIA RTX 3090 | 24GB VRAM | CUDA (via llama.cpp `-ngl 99`) |
+Key criteria when selecting a local LLM for RAG:
+
+- **Memory fit** — model weights + KV cache must fit in VRAM (GPU) or unified RAM (Apple Silicon). Rule of thumb: Q4 quantization ≈ 0.5 GB per billion parameters.
+- **Instruction following** — the model must stay within retrieved context and not hallucinate beyond it.
+- **Context window** — RAG prompts include retrieved chunks; you need headroom above the chunk content.
+- **Speed** — for interactive use, generation speed matters as much as quality.
+
+MoE (Mixture-of-Experts) models activate only a fraction of their weights per token, making them faster than dense models of equivalent total size on memory-bandwidth-limited hardware (Apple Silicon, consumer GPUs).
 
 ## Concepts
 
@@ -75,80 +79,22 @@ llama.cpp can quantize the KV cache to extend usable context:
 | q8_0 | 1 | Minimal quality loss |
 | q4_0 | 0.5 | Slight quality loss |
 
-We use `-ctk q8_0 -ctv q8_0` (set in `process-compose.yaml`). The `_0` suffix means basic linear quantization — the only variant used for KV cache because activations are transient and fancier schemes aren't worth the overhead.
+We use `-ctk q8_0 -ctv q8_0`. The `_0` suffix means basic linear quantization — the only variant used for KV cache because activations are transient and fancier schemes aren't worth the overhead.
 
-## Current LLM: Qwen3.6-35B-A3B (MoE, uncensored)
+### KV cache budget calculation
 
-Qwen3.6 is a model family from Alibaba. "3.6" is a generation name, not a parameter count. The 35B-A3B is the **MoE** (Mixture-of-Experts) model in the family.
-
-"A3B" = ~3B parameters **active per token** out of 35B total weights. On Apple Silicon (memory-bandwidth-limited), fewer active params per token means faster generation than a comparably-sized dense model.
-
-### Specs
-
-| Property | Value |
-|---|---|
-| Parameters (total / active) | 35B / ~3B per token |
-| Architecture | Mixture-of-Experts (MoE) |
-| Context window | 128K (we use 48K with KV cache quant) |
-| Disk size (Q4_K_P GGUF) | ~23.4 GB |
-| License | Apache 2.0 |
-
-### Variant: LuffyTheFox Wasserstein Q4_K_P
-
-`LuffyTheFox/Qwen3.6-35B-A3B-Uncensored-Wasserstein-GGUF` — chosen over `Youssofal/Qwen3.6-35B-A3B-Abliterated-Heretic-GGUF` (Q4_K_M) because:
-- Flat file layout — simpler `hf download`
-- `_K_P` quant gives a slight quality edge over `_K_M`
-- More community adoption (237k vs 25k downloads)
-
-| File | Size |
-|---|---|
-| `Qwen3.6-35B-A3B-Uncensored.IQ3_M.gguf` | 15.4 GB |
-| `Qwen3.6-35B-A3B-Uncensored.Q3_K_P.gguf` | 19 GB |
-| `Qwen3.6-35B-A3B-Uncensored.IQ4_NL.gguf` | 19.8 GB |
-| `Qwen3.6-35B-A3B-Uncensored.MXFP4_MOE.gguf` | 21.7 GB |
-| **`Qwen3.6-35B-A3B-Uncensored.Q4_K_P.gguf`** | **23.4 GB** ← in use |
-| `Qwen3.6-35B-A3B-Uncensored.Q5_K_P.gguf` | 28 GB |
-| `Qwen3.6-35B-A3B-Uncensored.Q6_K_P.gguf` | 30.6 GB |
-| `Qwen3.6-35B-A3B-Uncensored.Q8_K_P.gguf` | 43.6 GB |
-
-### Why it's good for RAG
-
-- **MoE speed** — fewer active params per token = faster on Apple Silicon
-- **Strong instruction following** — stays within retrieved context, doesn't hallucinate beyond it
-- **Long context** — 128K native; we use 48K in practice with KV cache quantization
-- **Reasoning** — handles multi-hop questions well across several retrieved passages
-
-```bash
-devbox run model-pull
-```
-
-## Previous LLM: Qwen3.6-27B (dense, abliterated)
-
-`Abiray/Huihui-Qwen3.6-27B-abliterated-GGUF` — Q4_K_M (~15.4 GB). Switched to 35B-A3B for better speed on Apple Silicon.
-
-Dense (non-MoE) model — all 27B parameters are used every token.
-
-### Specs
-
-| Property | Value |
-|---|---|
-| Parameters | 27B |
-| Architecture | Dense transformer with GQA |
-| Layers | 64 |
-| KV heads | 4 (query heads: 24) |
-| Head dimension | 256 |
-| Disk size (Q4_K_M GGUF) | ~15.4 GB |
-| License | Apache 2.0 |
-
-### KV cache calculation
+To estimate usable context for a given model:
 
 ```
 KV cache per token = 2 × KV_heads × head_dim × layers × bytes_per_element
-                   = 2 × 4 × 256 × 64 × 2 bytes (fp16)
-                   = 256 KB per token
 ```
 
-With 15.4 GB for weights and 24 GB VRAM total, ~8.6 GB headroom gives:
+Example for a 27B model with 4 KV heads, 256 head dim, 64 layers, fp16:
+```
+2 × 4 × 256 × 64 × 2 bytes = 256 KB per token
+```
+
+With 8.6 GB headroom (24 GB VRAM − 15.4 GB weights):
 
 | KV cache type | Usable context |
 |---|---|
@@ -156,59 +102,16 @@ With 15.4 GB for weights and 24 GB VRAM total, ~8.6 GB headroom gives:
 | q8_0 | ~68K tokens |
 | q4_0 | ~136K tokens |
 
-Using q8_0, the target was `--ctx-size 49152` (48K) — safe margin below 68K theoretical max. 48K ≈ one complete Sherlock Holmes novel.
+This calculation applies to any transformer model — just substitute the right architectural constants from the model card.
 
-### Available quantizations
+## Why two inference server processes?
 
-| File | Size | Notes |
-|---|---|---|
-| `Q3_K_M` | 12.4 GB | 3-bit — noticeable quality drop |
-| `Q4_K_S` | 14.5 GB | 4-bit small |
-| **`Q4_K_M`** | **15.4 GB** | **was in use** |
-| `Q5_K_M` | 17.9 GB | 5-bit — noticeably better than Q4 |
-| `Q6_K` | 20.6 GB | 6-bit — near-lossless |
-| `Q8_0` | 26.6 GB | Does not fit in 24 GB VRAM |
+Embedding and generation are separate models, so they run as separate server processes (e.g. on different ports). Both expose an OpenAI-compatible API, so the Python code uses a single client with different `base_url` values — no special client per model needed.
 
-## Embedding model: nomic-embed-text-v1.5 (GGUF)
+## AWS Bedrock (cloud alternative)
 
-| Property | Value |
-|---|---|
-| Size | ~370MB (Q8_0 GGUF) |
-| Dimensions | 768 |
-| Context window | 8192 tokens |
-| Benchmark | Top-tier on MTEB retrieval (open-source) |
+Replace `ChatOpenAI` with `ChatBedrock` when deploying to AWS. Good choices:
+- High quality: `anthropic.claude-3-5-sonnet` family
+- Cost-effective: `amazon.nova-pro-v1`
 
-llama.cpp serves it on port 8081 with `--embedding --pooling mean`. The pooling
-mode matters: `mean` averaging over token embeddings gives the best retrieval
-quality for this model (matching how it was trained).
-
-**Important:** changing embedding models changes the vector space — all existing
-vectors become incompatible. You must re-ingest all documents after any swap.
-(snowflake-arctic-embed2 was 1024 dims; nomic-embed-text is 768 dims.)
-
-## Why two llama-server processes?
-
-llama.cpp loads one model per server process. Embedding and generation are separate
-models, so they run as `llama-chat` (port 8080) and `llama-embed` (port 8081).
-Both expose an OpenAI-compatible API, so the Python code uses `langchain-openai`
-with a custom `base_url` — no special Ollama client needed.
-
-## Why llama.cpp over Ollama?
-
-- **Direct control** — flags like `--ctx-size`, `--pooling`, `-ctk` are explicit;
-  Ollama hides them behind a modelfile abstraction
-- **No daemon surprises** — Ollama's background process can restart models or
-  swap context at unexpected times; llama-server is a single predictable process
-- **GGUF-native** — llama.cpp is the reference GGUF runtime; Ollama wraps it
-  anyway, adding a layer you don't need
-
-## AWS Bedrock (future deployment)
-
-Replace `ChatOpenAI` with `ChatBedrock` by setting `LLM_PROVIDER=bedrock` in `.env`.
-Good model choices on Bedrock:
-- `anthropic.claude-3-5-sonnet-20241022-v2:0` — highest quality
-- `amazon.nova-pro-v1:0` — cheaper, still good
-
-Embeddings on AWS: swap `OpenAIEmbeddings` for `BedrockEmbeddings` with
-`amazon.titan-embed-text-v2:0`. Note: dimensions differ from nomic-embed-text,
-so you must re-ingest all documents when switching embedding models.
+For embeddings, swap `OpenAIEmbeddings` for `BedrockEmbeddings` (e.g. `amazon.titan-embed-text-v2`). Note: dimensions differ between embedding models, so re-ingest all documents when switching.
