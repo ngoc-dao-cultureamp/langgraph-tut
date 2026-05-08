@@ -58,7 +58,7 @@ with st.sidebar:
         st.rerun()
 
     st.divider()
-    no_think = st.toggle("No reasoning (faster)", value=False)
+    no_reasoning = st.toggle("No reasoning (faster)", value=False)
 
 # Initialise session state
 if "thread_id" not in st.session_state:
@@ -119,7 +119,7 @@ with chat_tab:
             placeholder = st.empty()
             try:
                 for event, payload in stream_answer(
-                        question, _graph(), st.session_state.thread_id, enable_thinking=not no_think
+                        question, _graph(), st.session_state.thread_id, enable_reasoning=not no_reasoning
                 ):
                     if event == "standalone":
                         standalone = payload
@@ -189,7 +189,7 @@ with free_chat_tab:
                     {"role": m["role"], "content": m["content"]}
                     for m in st.session_state.free_messages
                 ]
-                for event, payload in stream_free(messages, enable_thinking=not no_think):
+                for event, payload in stream_free(messages, enable_reasoning=not no_reasoning):
                     if event == "thinking":
                         thinking_text += payload
                         if think_expander is None:

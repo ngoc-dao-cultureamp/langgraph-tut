@@ -123,13 +123,13 @@ def stream_answer(
     question: str,
     compiled_graph,
     thread_id: str,
-    enable_thinking: bool = True,
+    enable_reasoning: bool = True,
 ) -> Generator[StreamEvent, None, None]:
     """Yield typed events from a single graph run:
       ("standalone", str)       — rewritten self-contained question
       ("hypothesis", str)       — HyDE hypothetical answer used for retrieval
       ("docs", list[Document])  — retrieved chunks
-      ("thinking", str)         — one reasoning token at a time (only if enable_thinking=True)
+      ("thinking", str)         — one reasoning token at a time (only if enable_reasoning=True)
       ("token", str)            — one answer token at a time
     """
     config = {"configurable": {"thread_id": thread_id}}
@@ -165,7 +165,7 @@ def stream_answer(
         f"Question: {question}"
     )
     client = OpenAI(base_url=LLM_HOST, api_key="sk-local")
-    extra = {"chat_template_kwargs": {"enable_thinking": enable_thinking}}
+    extra = {"chat_template_kwargs": {"enable_thinking": enable_reasoning}}
     full_answer = ""
     for chunk in client.chat.completions.create(
         model=LLM_MODEL_ALIAS,

@@ -4,7 +4,7 @@ Useful for verifying that reasoning/thinking streaming works end-to-end.
 
 Usage:
     uv run python src/cli/chat_about_anything.py           # reasoning on (default)
-    uv run python src/cli/chat_about_anything.py --no-think  # reasoning off
+    uv run python src/cli/chat_about_anything.py --no-reasoning  # reasoning off
 
 Reasoning tokens are printed dimmed in grey; answer tokens are printed normally.
 Press Ctrl-C or Ctrl-D to exit.
@@ -20,7 +20,7 @@ DIM   = "\033[2m"
 BOLD  = "\033[1m"
 
 messages: list[dict] = []
-enable_thinking: bool = True
+enable_reasoning: bool = True
 
 
 def chat(question: str) -> None:
@@ -29,7 +29,7 @@ def chat(question: str) -> None:
     in_thinking = False
     print()
     try:
-        for event, payload in stream_free(messages, enable_thinking=enable_thinking):
+        for event, payload in stream_free(messages, enable_reasoning=enable_reasoning):
             if event == "thinking":
                 if not in_thinking:
                     print(f"{DIM}[thinking]{RESET}", flush=True)
@@ -48,12 +48,12 @@ def chat(question: str) -> None:
 
 
 def main() -> None:
-    global enable_thinking
+    global enable_reasoning
     parser = argparse.ArgumentParser(description="Free chat CLI")
-    parser.add_argument("--no-think", action="store_true", help="Disable reasoning tokens")
+    parser.add_argument("--no-reasoning", action="store_true", help="Disable reasoning tokens")
     args = parser.parse_args()
-    enable_thinking = not args.no_think
-    mode = "reasoning OFF" if args.no_think else "reasoning ON"
+    enable_reasoning = not args.no_reasoning
+    mode = "reasoning OFF" if args.no_reasoning else "reasoning ON"
     print(f"{BOLD}Free chat CLI{RESET} ({mode}) — Ctrl-C or Ctrl-D to exit\n")
     while True:
         try:

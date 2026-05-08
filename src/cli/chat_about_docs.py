@@ -8,7 +8,7 @@ Requires PostgreSQL and llama-server to be running:
 
 Usage:
     uv run python src/cli/chat_about_docs.py              # reasoning on (default)
-    uv run python src/cli/chat_about_docs.py --no-think  # reasoning off
+    uv run python src/cli/chat_about_docs.py --no-reasoning  # reasoning off
 
 Intermediate graph steps (standalone question, hypothesis, doc count) are
 printed in dim grey. Reasoning tokens are printed in dim grey. Answer tokens
@@ -28,7 +28,7 @@ YELLOW = "\033[33m"
 
 compiled_graph = build_graph()
 thread_id = str(uuid.uuid4())
-enable_thinking: bool = True
+enable_reasoning: bool = True
 
 
 def chat(question: str) -> None:
@@ -36,7 +36,7 @@ def chat(question: str) -> None:
     in_answer = False
     print()
     try:
-        for event, payload in stream_answer(question, compiled_graph, thread_id, enable_thinking=enable_thinking):
+        for event, payload in stream_answer(question, compiled_graph, thread_id, enable_reasoning=enable_reasoning):
             if event == "standalone":
                 print(f"{DIM}[standalone] {payload}{RESET}", flush=True)
             elif event == "hypothesis":
@@ -62,12 +62,12 @@ def chat(question: str) -> None:
 
 
 def main() -> None:
-    global enable_thinking
+    global enable_reasoning
     parser = argparse.ArgumentParser(description="Docs chat CLI")
-    parser.add_argument("--no-think", action="store_true", help="Disable reasoning tokens")
+    parser.add_argument("--no-reasoning", action="store_true", help="Disable reasoning tokens")
     args = parser.parse_args()
-    enable_thinking = not args.no_think
-    mode = "reasoning OFF" if args.no_think else "reasoning ON"
+    enable_reasoning = not args.no_reasoning
+    mode = "reasoning OFF" if args.no_reasoning else "reasoning ON"
     print(f"{BOLD}Docs chat CLI{RESET} (thread {thread_id[:8]}…, {mode}) — Ctrl-C or Ctrl-D to exit\n")
     while True:
         try:
