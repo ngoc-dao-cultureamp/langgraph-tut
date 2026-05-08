@@ -67,7 +67,7 @@ Vulture only reports — it never modifies files. Review its output manually bef
 ### Web UI
 
 ```bash
-devbox run ui
+devbox run webui
 ```
 
 Opens the Streamlit app at **http://localhost:8501** with two tabs:

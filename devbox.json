@@ -38,7 +38,7 @@
       "eval": ["uv run python src/cli/eval.py"],
       "lint": ["uv run ruff check src/"],
       "fmt": ["uv run ruff format src/"],
-      "ui": ["uv run streamlit run src/ui.py"]
+      "webui": ["uv run streamlit run src/webui.py"]
     }
   }
 }
