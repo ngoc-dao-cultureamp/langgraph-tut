@@ -1,7 +1,6 @@
 import os
 from collections.abc import Generator
 
-from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
@@ -9,7 +8,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from openai import OpenAI
 
-from llm import StreamEvent, stream_free  # re-export for callers that import from graph
+from llm import StreamEvent, stream_free  # noqa: F401 — re-exported for callers
 from retriever import search
 from state import RAGState
 
@@ -42,15 +41,6 @@ _HYDE_PROMPT = ChatPromptTemplate.from_template(
     "if it appeared in a book. Do not explain or qualify — just write the passage.\n\n"
     "Question: {question}"
 )
-
-_ANSWER_PROMPT = ChatPromptTemplate.from_template(
-    "You are a helpful assistant. Answer the question using only the context below. "
-    "If the answer is not in the context, say you don't know.\n\n"
-    "Conversation history:\n{history}\n\n"
-    "Context:\n{context}\n\n"
-    "Question: {question}"
-)
-
 
 def _filter(state: RAGState) -> RAGState:
     llm = ChatOpenAI(model=LLM_MODEL_ALIAS, base_url=LLM_HOST, api_key="sk-local", extra_body=_NO_THINK)
@@ -97,18 +87,6 @@ def _retrieve(state: RAGState) -> RAGState:
     return {"documents": merged}
 
 
-def _generate(state: RAGState) -> RAGState:
-    context = "\n\n".join(doc.page_content for doc in state["documents"])
-    llm = ChatOpenAI(model=LLM_MODEL_ALIAS, base_url=LLM_HOST, api_key="sk-local")
-    chain = _ANSWER_PROMPT | llm | StrOutputParser()
-    answer = chain.invoke({
-        "history": state.get("history", "(none)") or "(none)",
-        "context": context,
-        "question": state["question"],
-    })
-    return {"answer": answer}
-
-
 def build_graph():
     # MemorySaver persists state in RAM across turns within a thread.
     # To persist across app restarts, swap for PostgresSaver — one line change.
@@ -123,9 +101,6 @@ def build_graph():
     g.add_edge("hypothesize", "retrieve")
     g.add_edge("retrieve", END)
     return g.compile(checkpointer=MemorySaver())
-
-
-type StreamEvent = tuple[str, list[Document]] | tuple[str, str]
 
 
 def _build_history_str(compiled_graph, config: dict) -> str:

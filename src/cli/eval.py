@@ -7,7 +7,6 @@ Metrics scored 0.0–1.0 by the LLM:
   correctness       — answer matches a known reference answer (where provided)
 """
 
-import json
 import os
 import uuid
 

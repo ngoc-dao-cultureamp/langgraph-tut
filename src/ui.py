@@ -71,7 +71,9 @@ if "free_messages" not in st.session_state:
     st.session_state.free_messages = []  # list of {"role", "content"}
 
 # --- Tabs ---
-search_tab, chat_tab, free_chat_tab, all_tab = st.tabs(["Search Docs", "Chat about Docs", "Chat about anything", "All Docs"])
+search_tab, chat_tab, free_chat_tab, all_tab = st.tabs(
+    ["Search Docs", "Chat about Docs", "Chat about anything", "All Docs"]
+)
 
 with search_tab:
     query = st.text_input("Search", placeholder="e.g. Hound of the Baskervilles")
@@ -116,7 +118,9 @@ with chat_tab:
             think_placeholder = None
             placeholder = st.empty()
             try:
-                for event, payload in stream_answer(question, _graph(), st.session_state.thread_id, enable_thinking=not no_think):
+                for event, payload in stream_answer(
+                        question, _graph(), st.session_state.thread_id, enable_thinking=not no_think
+                ):
                     if event == "standalone":
                         standalone = payload
                     elif event == "hypothesis":

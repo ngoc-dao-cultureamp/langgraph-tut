@@ -36,6 +36,8 @@
       ],
       "model-pull": ["uv run hf download $LLM_REPO $LLM_FILE --local-dir models/", "uv run hf download $EMBED_REPO $EMBED_FILE --local-dir models/"],
       "eval": ["uv run python src/cli/eval.py"],
+      "lint": ["uv run ruff check src/"],
+      "fmt": ["uv run ruff format src/"],
       "ui": ["uv run streamlit run src/ui.py"]
     }
   }

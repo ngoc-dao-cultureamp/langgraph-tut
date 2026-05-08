@@ -15,3 +15,15 @@ dependencies = [
 
 [tool.uv]
 package = false
+
+[tool.ruff]
+src = ["src"]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]  # pycodestyle errors, pyflakes, isort
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.12",
+]

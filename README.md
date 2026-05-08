@@ -44,6 +44,24 @@ Starts PostgreSQL, two llama-server instances, and Open WebUI. On first run, Pos
 uv run python src/ingest.py
 ```
 
+## Linting
+
+```bash
+devbox run lint                    # check for errors and style issues (ruff)
+uv run ruff check src/ --fix       # auto-fix what ruff can fix (unused imports, isort, etc.)
+devbox run fmt                     # auto-format source files (ruff format)
+```
+
+Ruff covers both linting (`E`, `F`) and import sorting (`I`). Configuration is in `pyproject.toml` under `[tool.ruff]`.
+
+Not everything is auto-fixable: ruff won't remove unused function definitions. Use `vulture` to find dead code:
+
+```bash
+uv run vulture src/
+```
+
+Vulture only reports — it never modifies files. Review its output manually before deleting anything; it can have false positives for functions called dynamically.
+
 ## Running the app
 
 ### Web UI

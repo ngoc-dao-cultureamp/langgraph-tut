@@ -27,7 +27,9 @@ def check_connection() -> None:
 
 
 def get_vector_store() -> PGVector:
-    embeddings = OpenAIEmbeddings(model=EMBED_MODEL_ALIAS, base_url=EMBED_HOST, api_key="sk-local", check_embedding_ctx_length=False)
+    embeddings = OpenAIEmbeddings(
+        model=EMBED_MODEL_ALIAS, base_url=EMBED_HOST, api_key="sk-local", check_embedding_ctx_length=False
+    )
     return PGVector(
         embeddings=embeddings,
         collection_name=COLLECTION_NAME,
