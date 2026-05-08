@@ -7,13 +7,105 @@
 | MacBook | Apple M3 Max | 36GB unified RAM | Metal (via llama.cpp `-ngl 99`) |
 | Workstation | NVIDIA RTX 3090 | 24GB VRAM | CUDA (via llama.cpp `-ngl 99`) |
 
-## LLM: Qwen3.6-27B (abliterated, GGUF)
+## Concepts
 
-Qwen3.6 is a multimodal model family from Alibaba released in 2025. "3.6" is a
-generation name, not a parameter count — like naming a car model year. The 27B
-variant is the dense (non-MoE) model in the family.
+### GGUF quantization
 
-We use the abliterated variant from `huihui-ai`, quantized to Q4_K_M by Abiray.
+GGUF is the file format llama.cpp uses. Quantization reduces precision to save memory.
+
+**Name anatomy: `Q4_K_M`**
+- `Q4` — 4 bits per weight element (vs 16 bits for fp16)
+- `K` — "K-quant": groups weights with shared scale factors, preserving more information than naive rounding
+- `M` — medium variant (S = small, M = medium, L = large within the same bit level)
+
+**Variants:**
+- **`IQ` (importance-weighted):** `IQ4_XS`, `IQ4_NL` — assign more bits to weights that matter most. Better quality per GB, slightly slower to load.
+- **`UD` (Unsloth Dynamic):** `UD-Q4_K_XL` — layers earlier/later in the network get more bits; middle layers fewer. Best quality for a given file size.
+- **`_K_P` (K-quant Plus):** Critical layers (attention, embeddings) kept at higher precision. Similar to UD but applied uniformly by layer type rather than by measured importance.
+
+### Refusal removal
+
+Instruction-tuned models are trained to refuse certain requests. Two main techniques:
+
+- **Mean-diff abliteration** — find the refusal direction via difference of means in activation space, subtract it from the weights. Classic, well-understood.
+- **Wasserstein distance** — uses optimal-transport geometry to find the refusal direction. Newer; claims more thorough removal with less collateral damage to capability.
+
+Both are post-processing steps on the weights, not fine-tunes. For a RAG app, this prevents false refusals on edge-case question phrasings.
+
+### Model weight formats
+
+| Format | Description | Use case |
+|---|---|---|
+| **Safetensors** | Standard HF format, full precision (bf16/fp32). Safe from pickle exploits. | Fine-tuning, conversion source |
+| **MLX** | Apple M-series optimised format. Runs via `mlx-lm`. Not portable to other hardware. | Apple Silicon inference |
+| **GGUF** | Single-file bundle (weights + tokenizer + metadata). Quantization-friendly. | llama.cpp inference ← what we use |
+
+GGUF requires conversion from safetensors (`llama.cpp`'s `convert_hf_to_gguf.py` + quantize). New model releases often have safetensors/MLX first; GGUFs appear within days as community members run the conversion.
+
+### KV cache
+
+The KV cache stores intermediate attention state during generation. It grows with context length — longer conversations or more retrieved chunks = more memory needed.
+
+llama.cpp can quantize the KV cache to extend usable context:
+
+| `-ctk`/`-ctv` type | Bytes/element | Notes |
+|---|---|---|
+| fp16 (default) | 2 | Full precision |
+| q8_0 | 1 | Minimal quality loss |
+| q4_0 | 0.5 | Slight quality loss |
+
+We use `-ctk q8_0 -ctv q8_0` (set in `process-compose.yaml`). The `_0` suffix means basic linear quantization — the only variant used for KV cache because activations are transient and fancier schemes aren't worth the overhead.
+
+## Current LLM: Qwen3.6-35B-A3B (MoE, uncensored)
+
+Qwen3.6 is a model family from Alibaba. "3.6" is a generation name, not a parameter count. The 35B-A3B is the **MoE** (Mixture-of-Experts) model in the family.
+
+"A3B" = ~3B parameters **active per token** out of 35B total weights. On Apple Silicon (memory-bandwidth-limited), fewer active params per token means faster generation than a comparably-sized dense model.
+
+### Specs
+
+| Property | Value |
+|---|---|
+| Parameters (total / active) | 35B / ~3B per token |
+| Architecture | Mixture-of-Experts (MoE) |
+| Context window | 128K (we use 48K with KV cache quant) |
+| Disk size (Q4_K_P GGUF) | ~23.4 GB |
+| License | Apache 2.0 |
+
+### Variant: LuffyTheFox Wasserstein Q4_K_P
+
+`LuffyTheFox/Qwen3.6-35B-A3B-Uncensored-Wasserstein-GGUF` — chosen over `Youssofal/Qwen3.6-35B-A3B-Abliterated-Heretic-GGUF` (Q4_K_M) because:
+- Flat file layout — simpler `hf download`
+- `_K_P` quant gives a slight quality edge over `_K_M`
+- More community adoption (237k vs 25k downloads)
+
+| File | Size |
+|---|---|
+| `Qwen3.6-35B-A3B-Uncensored.IQ3_M.gguf` | 15.4 GB |
+| `Qwen3.6-35B-A3B-Uncensored.Q3_K_P.gguf` | 19 GB |
+| `Qwen3.6-35B-A3B-Uncensored.IQ4_NL.gguf` | 19.8 GB |
+| `Qwen3.6-35B-A3B-Uncensored.MXFP4_MOE.gguf` | 21.7 GB |
+| **`Qwen3.6-35B-A3B-Uncensored.Q4_K_P.gguf`** | **23.4 GB** ← in use |
+| `Qwen3.6-35B-A3B-Uncensored.Q5_K_P.gguf` | 28 GB |
+| `Qwen3.6-35B-A3B-Uncensored.Q6_K_P.gguf` | 30.6 GB |
+| `Qwen3.6-35B-A3B-Uncensored.Q8_K_P.gguf` | 43.6 GB |
+
+### Why it's good for RAG
+
+- **MoE speed** — fewer active params per token = faster on Apple Silicon
+- **Strong instruction following** — stays within retrieved context, doesn't hallucinate beyond it
+- **Long context** — 128K native; we use 48K in practice with KV cache quantization
+- **Reasoning** — handles multi-hop questions well across several retrieved passages
+
+```bash
+devbox run model-pull
+```
+
+## Previous LLM: Qwen3.6-27B (dense, abliterated)
+
+`Abiray/Huihui-Qwen3.6-27B-abliterated-GGUF` — Q4_K_M (~15.4 GB). Switched to 35B-A3B for better speed on Apple Silicon.
+
+Dense (non-MoE) model — all 27B parameters are used every token.
 
 ### Specs
 
@@ -27,107 +119,34 @@ We use the abliterated variant from `huihui-ai`, quantized to Q4_K_M by Abiray.
 | Disk size (Q4_K_M GGUF) | ~15.4 GB |
 | License | Apache 2.0 |
 
-### KV cache and context size
+### KV cache calculation
 
-The KV cache is the memory that stores intermediate attention state during
-generation. It grows with context length — the longer the conversation or the
-more retrieved chunks in the prompt, the more memory it needs.
-
-**Formula:**
 ```
 KV cache per token = 2 × KV_heads × head_dim × layers × bytes_per_element
                    = 2 × 4 × 256 × 64 × 2 bytes (fp16)
                    = 256 KB per token
 ```
 
-With 15.4 GB used by the model weights and 24 GB VRAM total, there's ~8.6 GB
-headroom. At fp16 that gives ~34K tokens of context. But llama.cpp can quantize
-the KV cache too:
+With 15.4 GB for weights and 24 GB VRAM total, ~8.6 GB headroom gives:
 
-| KV cache type | Bytes/element | Context at 8.6 GB headroom |
-|---|---|---|
-| fp16 (default) | 2 | ~34K tokens |
-| q8_0 | 1 | ~68K tokens |
-| q4_0 | 0.5 | ~136K tokens |
+| KV cache type | Usable context |
+|---|---|
+| fp16 | ~34K tokens |
+| q8_0 | ~68K tokens |
+| q4_0 | ~136K tokens |
 
-We use `-ctk q8_0 -ctv q8_0` (set in `process-compose.yaml`), targeting
-`--ctx-size 49152` (48K) — a safe margin below the 68K theoretical max.
+Using q8_0, the target was `--ctx-size 49152` (48K) — safe margin below 68K theoretical max. 48K ≈ one complete Sherlock Holmes novel.
 
-**What does 48K tokens mean in practice?**
-
-- ~36,000 words
-- ~120 paperback novel pages (at ~300 words/page)
-- About half a full-length novel, or one complete Sherlock Holmes novel
-
-**What `-ctk` and `-ctv` mean:**
-- `ctk` = cache-type-k = quantization applied to the **Key** half of KV cache
-- `ctv` = cache-type-v = quantization applied to the **Value** half
-- `q8_0` = 8 bits per element, variant 0 (simple linear quant — minimal quality loss)
-- `q4_0` = 4 bits per element (half the memory, slight quality loss)
-
-The `_0` suffix means "variant 0" — basic linear quantization. Unlike model weight
-quants (which use fancier schemes like `q4_k_m`), KV cache quants only use the
-simpler `_0` variants because the activations are transient and re-quantization
-overhead matters more at inference time.
-
-### GGUF quantization variants explained
-
-GGUF is the file format llama.cpp uses for model weights. Quantization reduces
-precision to save memory — a tradeoff between size and quality.
-
-**Name anatomy: `Q4_K_M`**
-- `Q4` — 4 bits per weight element (vs 16 bits for fp16, halving memory use)
-- `K` — "K-quant": a smarter scheme that groups weights and assigns shared scale
-  factors, preserving more information than naive rounding
-- `M` — medium variant (S = small, M = medium, L = large within the same bit level)
-
-**Importance-weighted quants (`IQ`):**
-`IQ4_XS`, `IQ4_NL` — assign more bits to weights that matter most for output
-quality, fewer bits to weights that tolerate loss. Better quality per GB than
-standard Q4, but slower to load.
-
-**Unsloth Dynamic (`UD`) quants:**
-`UD-Q4_K_XL` etc. — same idea applied at the layer level: layers earlier and
-later in the network (which affect output more) get more bits; middle layers get
-fewer. Generally the best quality for a given file size.
-
-**Available abliterated variants** (`Abiray/Huihui-Qwen3.6-27B-abliterated-GGUF`):
+### Available quantizations
 
 | File | Size | Notes |
 |---|---|---|
 | `Q3_K_M` | 12.4 GB | 3-bit — noticeable quality drop |
-| `Q4_K_S` | 14.5 GB | 4-bit small — good quality/size |
-| **`Q4_K_M`** | **15.4 GB** | **recommended — sweet spot** |
+| `Q4_K_S` | 14.5 GB | 4-bit small |
+| **`Q4_K_M`** | **15.4 GB** | **was in use** |
 | `Q5_K_M` | 17.9 GB | 5-bit — noticeably better than Q4 |
-| `Q6_K` | 20.6 GB | 6-bit — near-lossless, tight on 24GB with KV cache |
-| `Q8_0` | 26.6 GB | 8-bit — does not fit in 24GB VRAM |
-
-### What "abliterated" means
-
-By default, instruction-tuned models are trained to refuse certain requests
-("I can't help with that"). Abliteration removes this refusal behaviour by
-identifying the "refusal direction" in the model's weight space — the axis along
-which activations shift when the model is about to refuse — and subtracting it
-out. It's a post-processing step on the weights, not a fine-tune.
-
-The result is a model that behaves like the base model without a content filter.
-For a RAG app answering questions about books, this means no false refusals on
-edge-case phrasings.
-
-`huihui-ai` is the most reputable source for abliterated models; Abiray provides
-the GGUF quantizations of their work.
-
-### Why it's good for RAG
-
-- **Strong instruction following** — reliably stays within the retrieved context
-  and doesn't hallucinate beyond it
-- **Long context** — 128K native window; with KV cache quant we use 48K in practice
-- **Reasoning** — handles multi-hop questions well (e.g. synthesising across
-  several retrieved passages)
-
-```bash
-devbox run model-pull
-```
+| `Q6_K` | 20.6 GB | 6-bit — near-lossless |
+| `Q8_0` | 26.6 GB | Does not fit in 24 GB VRAM |
 
 ## Embedding model: nomic-embed-text-v1.5 (GGUF)
 
