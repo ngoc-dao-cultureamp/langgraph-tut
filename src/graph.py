@@ -112,14 +112,12 @@ def build_graph():
     g.add_node("rewrite", _rewrite)
     g.add_node("hypothesize", _hypothesize)
     g.add_node("retrieve", _retrieve)
-    g.add_node("generate", _generate)
     g.add_edge(START, "filter")
     g.add_conditional_edges("filter", _is_off_topic, {"off_topic": END, "on_topic": "rewrite"})
     g.add_edge("rewrite", "hypothesize")
     g.add_edge("hypothesize", "retrieve")
-    g.add_edge("retrieve", "generate")
-    g.add_edge("generate", END)
-    return g.compile(checkpointer=MemorySaver(), interrupt_before=["generate"])
+    g.add_edge("retrieve", END)
+    return g.compile(checkpointer=MemorySaver())
 
 
 type StreamEvent = tuple[str, list[Document]] | tuple[str, str]
@@ -158,7 +156,7 @@ def stream_answer(
 
     documents = []
 
-    for _mode, data in compiled_graph.stream(
+    for data in compiled_graph.stream(
         {"question": question, "history": history},
         config=config,
         stream_mode="updates",
@@ -175,8 +173,8 @@ def stream_answer(
             documents = data["retrieve"]["documents"]
             yield ("docs", documents)
 
-    # Graph is now paused at interrupt_before=["generate"].
-    # Stream generate directly with the openai client so reasoning_content is preserved.
+    # Graph has completed (retrieve -> END). Stream generate directly with the
+    # raw openai client so reasoning_content is preserved in the stream.
     context = "\n\n".join(doc.page_content for doc in documents)
     prompt = (
         "You are a helpful assistant. Answer the question using only the context below. "

@@ -44,6 +44,34 @@ Starts PostgreSQL, two llama-server instances, and Open WebUI. On first run, Pos
 uv run python src/ingest.py
 ```
 
+## Running the app
+
+### Web UI
+
+```bash
+devbox run ui
+```
+
+Opens the Streamlit app at **http://localhost:8501** with two tabs:
+- **Chat about Docs** — full RAG pipeline (filter → rewrite → hypothesize → retrieve → generate)
+- **Chat about anything** — direct LLM chat, no retrieval
+
+### CLI — Chat about Docs (tests the full LangGraph pipeline)
+
+```bash
+devbox run -- uv run python src/cli_chat_about_docs.py
+```
+
+Requires PostgreSQL and llama-server to be running (`devbox services up`). Shows intermediate pipeline steps (standalone question, hypothesis, chunk count) and reasoning tokens in dim grey.
+
+### CLI — Chat about anything (tests LLM streaming only, no DB needed)
+
+```bash
+devbox run -- uv run python src/cli_chat_about_anything.py
+```
+
+Only requires llama-server (`llama-chat` on port 8080). Useful for verifying reasoning/thinking token streaming works without any database dependency.
+
 ## Services
 
 | Command | Description |
