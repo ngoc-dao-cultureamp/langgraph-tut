@@ -17,8 +17,22 @@ def _graph():
     return build_graph()
 
 
+@st.cache_resource
+def _db_status() -> str | None:
+    """Return None if DB is healthy, or an error message string."""
+    try:
+        from store import check_connection
+        check_connection()
+        return None
+    except RuntimeError as exc:
+        return str(exc)
+
+
 st.set_page_config(page_title="Sherlock Holmes stories", layout="wide")
 st.title("Sherlock Holmes stories")
+
+if db_error := _db_status():
+    st.error(f"⚠️ {db_error}", icon="🛑")
 
 # --- Sidebar ---
 with st.sidebar:

@@ -1,10 +1,18 @@
+import logging
+
 from langchain_core.documents import Document
 
 from store import get_vector_store
 
+logger = logging.getLogger(__name__)
+
 
 def search(query: str, k: int = 10) -> list[Document]:
-    return get_vector_store().similarity_search(query, k=k)
+    try:
+        return get_vector_store().similarity_search(query, k=k)
+    except Exception as exc:
+        logger.error("search() failed: %s", exc)
+        raise RuntimeError("Could not search documents — database may be unavailable.") from exc
 
 
 def list_all() -> list[Document]:
