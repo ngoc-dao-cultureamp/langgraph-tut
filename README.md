@@ -28,7 +28,7 @@ devbox run model-pull
 
 Downloads `$LLM_FILE` (`$LLM_REPO`) and `$EMBED_FILE` (`$EMBED_REPO`) into `models/`.
 
-`$LLM_MODEL` runs well on both M3 Max (36GB) and RTX 3090 (24GB VRAM).
+`$LLM_MODEL_ALIAS` runs well on both M3 Max (36GB) and RTX 3090 (24GB VRAM).
 
 ### 4. Start services
 
@@ -57,8 +57,8 @@ uv run python src/ingest.py
 
 | Service | Port | Purpose |
 |---|---|---|
-| `llama-chat` | `8080` | LLM (`$LLM_MODEL`) — chat completions |
-| `llama-embed` | `8081` | Embeddings (`$EMBED_MODEL`) |
+| `llama-chat` | `8080` | LLM (`$LLM_MODEL_ALIAS`) — chat completions |
+| `llama-embed` | `8081` | Embeddings (`$EMBED_MODEL_ALIAS`) |
 
 Both expose an OpenAI-compatible API (`/v1`).
 

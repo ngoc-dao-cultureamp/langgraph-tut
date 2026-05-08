@@ -9,7 +9,7 @@ from ingest import run as ingest_run
 from retriever import list_all, search
 
 LLM_HOST = os.environ.get("LLM_HOST")
-LLM_MODEL = os.environ.get("LLM_MODEL")
+LLM_MODEL_ALIAS = os.environ.get("LLM_MODEL_ALIAS")
 
 
 @st.cache_resource
@@ -149,7 +149,7 @@ with free_chat_tab:
             placeholder = st.empty()
             streamed = ""
             try:
-                llm = ChatOpenAI(model=LLM_MODEL, base_url=LLM_HOST, api_key="sk-local", streaming=True)
+                llm = ChatOpenAI(model=LLM_MODEL_ALIAS, base_url=LLM_HOST, api_key="sk-local", streaming=True)
                 for chunk in llm.stream(history + [{"role": "user", "content": question}]):
                     if chunk.content:
                         streamed += chunk.content

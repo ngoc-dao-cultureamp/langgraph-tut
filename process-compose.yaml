@@ -18,7 +18,7 @@ processes:
       period_seconds: 2
 
   llama-chat:
-    command: "llama-server --model models/$LLM_FILE --alias $LLM_MODEL --port 8080 --ctx-size 49152 -ngl 99 -ctk q8_0 -ctv q8_0"
+    command: "llama-server --model models/$LLM_FILE --alias $LLM_MODEL_ALIAS --port 8080 --ctx-size 49152 -ngl 99 -ctk q8_0 -ctv q8_0"
     readiness_probe:
       http_get:
         host: localhost
@@ -29,7 +29,7 @@ processes:
       failure_threshold: 30
 
   llama-embed:
-    command: "llama-server --model models/$EMBED_FILE --alias $EMBED_MODEL --port 8081 --embedding --pooling mean -ngl 99"
+    command: "llama-server --model models/$EMBED_FILE --alias $EMBED_MODEL_ALIAS --port 8081 --embedding --pooling mean -ngl 99"
     readiness_probe:
       http_get:
         host: localhost

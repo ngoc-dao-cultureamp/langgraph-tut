@@ -5,12 +5,12 @@ from langchain_postgres import PGVector
 
 DB_URL = os.environ["DB_URL"]
 EMBED_HOST = os.environ.get("EMBED_HOST")
-EMBED_MODEL = os.environ.get("EMBED_MODEL")
+EMBED_MODEL_ALIAS = os.environ.get("EMBED_MODEL_ALIAS")
 COLLECTION_NAME = "docs"
 
 
 def get_vector_store() -> PGVector:
-    embeddings = OpenAIEmbeddings(model=EMBED_MODEL, base_url=EMBED_HOST, api_key="sk-local", check_embedding_ctx_length=False)
+    embeddings = OpenAIEmbeddings(model=EMBED_MODEL_ALIAS, base_url=EMBED_HOST, api_key="sk-local", check_embedding_ctx_length=False)
     return PGVector(
         embeddings=embeddings,
         collection_name=COLLECTION_NAME,

@@ -12,7 +12,7 @@ from retriever import search
 from state import RAGState
 
 LLM_HOST = os.environ.get("LLM_HOST")
-LLM_MODEL = os.environ.get("LLM_MODEL")
+LLM_MODEL_ALIAS = os.environ.get("LLM_MODEL_ALIAS")
 
 _FILTER_PROMPT = ChatPromptTemplate.from_template(
     "Is the following question related to Sherlock Holmes stories, characters, or plots? "
@@ -46,7 +46,7 @@ _ANSWER_PROMPT = ChatPromptTemplate.from_template(
 
 
 def _filter(state: RAGState) -> RAGState:
-    llm = ChatOpenAI(model=LLM_MODEL, base_url=LLM_HOST, api_key="sk-local")
+    llm = ChatOpenAI(model=LLM_MODEL_ALIAS, base_url=LLM_HOST, api_key="sk-local")
     chain = _FILTER_PROMPT | llm | StrOutputParser()
     verdict = chain.invoke({"question": state["question"]}).strip().lower()
     if not verdict.startswith("yes"):
@@ -63,14 +63,14 @@ def _rewrite(state: RAGState) -> RAGState:
     history = state.get("history", "(none)") or "(none)"
     if history == "(none)":
         return {"standalone_question": state["question"]}
-    llm = ChatOpenAI(model=LLM_MODEL, base_url=LLM_HOST, api_key="sk-local")
+    llm = ChatOpenAI(model=LLM_MODEL_ALIAS, base_url=LLM_HOST, api_key="sk-local")
     chain = _REWRITE_PROMPT | llm | StrOutputParser()
     standalone = chain.invoke({"history": history, "question": state["question"]})
     return {"standalone_question": standalone}
 
 
 def _hypothesize(state: RAGState) -> RAGState:
-    llm = ChatOpenAI(model=LLM_MODEL, base_url=LLM_HOST, api_key="sk-local")
+    llm = ChatOpenAI(model=LLM_MODEL_ALIAS, base_url=LLM_HOST, api_key="sk-local")
     chain = _HYDE_PROMPT | llm | StrOutputParser()
     hypothesis = chain.invoke({"question": state["standalone_question"]})
     return {"hypothesis": hypothesis}
@@ -92,7 +92,7 @@ def _retrieve(state: RAGState) -> RAGState:
 
 def _generate(state: RAGState) -> RAGState:
     context = "\n\n".join(doc.page_content for doc in state["documents"])
-    llm = ChatOpenAI(model=LLM_MODEL, base_url=LLM_HOST, api_key="sk-local")
+    llm = ChatOpenAI(model=LLM_MODEL_ALIAS, base_url=LLM_HOST, api_key="sk-local")
     chain = _ANSWER_PROMPT | llm | StrOutputParser()
     answer = chain.invoke({
         "history": state.get("history", "(none)") or "(none)",

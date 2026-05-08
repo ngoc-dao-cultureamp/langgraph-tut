@@ -18,7 +18,7 @@ from langchain_openai import ChatOpenAI
 from graph import build_graph, stream_answer
 
 LLM_HOST = os.environ.get("LLM_HOST")
-LLM_MODEL = os.environ.get("LLM_MODEL")
+LLM_MODEL_ALIAS = os.environ.get("LLM_MODEL_ALIAS")
 
 QUESTIONS = [
     {"question": "Who is Sherlock Holmes's landlady?",
@@ -73,7 +73,7 @@ _CORRECTNESS_PROMPT = ChatPromptTemplate.from_template(
 
 
 def _judge(prompt: ChatPromptTemplate, **kwargs) -> tuple[float, str]:
-    llm = ChatOpenAI(model=LLM_MODEL, base_url=LLM_HOST, api_key="sk-local")
+    llm = ChatOpenAI(model=LLM_MODEL_ALIAS, base_url=LLM_HOST, api_key="sk-local")
     try:
         result = (prompt | llm | JsonOutputParser()).invoke(kwargs)
         return float(result["score"]), result.get("reason", "")
