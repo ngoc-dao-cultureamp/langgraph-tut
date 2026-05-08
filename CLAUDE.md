@@ -1,8 +1,8 @@
 # Claude Instructions
 
-## Notes folder
+## Learning notes folder
 
-When explaining concepts, architecture decisions, debugging discoveries, or gotchas that would help an AI/RAG learner understand the "why", add or update a Markdown file in `notes/`.
+When explaining concepts, architecture decisions, debugging discoveries, or gotchas that would help an AI/RAG learner understand the "why", add or update a Markdown file in `learning_notes/`.
 
 - Use number prefixes to maintain reading order (`01-`, `02-`, etc.)
 - Keep notes concise and example-driven
