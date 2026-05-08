@@ -15,21 +15,27 @@ LLM_MODEL_ALIAS = os.environ.get("LLM_MODEL_ALIAS", "")
 type StreamEvent = tuple[str, str]
 
 
-def stream_free(messages: list[dict]) -> Generator[StreamEvent, None, None]:
+def stream_free(
+    messages: list[dict],
+    enable_thinking: bool = True,
+) -> Generator[StreamEvent, None, None]:
     """Stream a free (non-RAG) chat turn.
 
     messages: full conversation as [{"role": ..., "content": ...}, ...]
               with the new user message already appended.
+    enable_thinking: set False to skip the <think> block (faster, no reasoning tokens).
 
     Yields:
-      ("thinking", str) — reasoning token
+      ("thinking", str) — reasoning token (only when enable_thinking=True)
       ("token",   str)  — answer token
     """
+    extra = {"chat_template_kwargs": {"enable_thinking": enable_thinking}}
     client = OpenAI(base_url=LLM_HOST, api_key="sk-local")
     for chunk in client.chat.completions.create(
         model=LLM_MODEL_ALIAS,
         messages=messages,
         stream=True,
+        extra_body=extra,
     ):
         delta = chunk.choices[0].delta
         if getattr(delta, "reasoning_content", None):

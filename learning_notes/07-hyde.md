@@ -67,3 +67,20 @@ Question: {question}
 ```
 
 The output replaces the original question as the retrieval query.
+
+## Performance: disable thinking for intermediate steps
+
+With a thinking model like Qwen3, the `hypothesize` node (and `filter`, `rewrite`) are
+slow because the model silently generates a `<think>` block before answering —
+even though that reasoning is never surfaced or used.
+
+Fix: pass `enable_thinking=False` via `extra_body` on the `ChatOpenAI` call:
+
+```python
+_NO_THINK = {"chat_template_kwargs": {"enable_thinking": False}}
+llm = ChatOpenAI(..., extra_body=_NO_THINK)
+```
+
+The model skips the think block entirely and responds immediately. Only the final
+`generate` step (which uses the raw openai client and surfaces thinking to the user)
+should keep thinking enabled.

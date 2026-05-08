@@ -19,6 +19,27 @@ llama.cpp surfaces thinking tokens as an extra field on each streaming delta:
 No special flags are needed — llama.cpp emits `reasoning_content` automatically
 for models that support thinking (like Qwen3).
 
+## Disabling thinking per-call
+
+Thinking can be turned off for individual calls by passing `enable_thinking=False`
+in the request body. With `ChatOpenAI` (LangChain):
+
+```python
+_NO_THINK = {"chat_template_kwargs": {"enable_thinking": False}}
+llm = ChatOpenAI(model=..., base_url=..., api_key="sk-local", extra_body=_NO_THINK)
+```
+
+With the raw openai client, add it to the `create()` call:
+
+```python
+client.chat.completions.create(..., extra_body=_NO_THINK)
+```
+
+**When to disable:** any intermediate pipeline step where the output is short and
+deterministic (yes/no classification, question rewriting, HyDE passage generation).
+These don't benefit from deep reasoning and the hidden `<think>` block just burns
+time. Only the final user-visible generate step should keep thinking enabled.
+
 ## Why LangChain can't be used for this
 
 `ChatOpenAI` from `langchain-openai` reassembles streaming deltas using only the

@@ -16,6 +16,11 @@ from state import RAGState
 LLM_HOST = os.environ.get("LLM_HOST")
 LLM_MODEL_ALIAS = os.environ.get("LLM_MODEL_ALIAS")
 
+# Intermediate pipeline steps (filter, rewrite, hypothesize) don't benefit from
+# deep reasoning — disable thinking so the model skips the <think> block and
+# responds immediately. Only the final generate step uses thinking.
+_NO_THINK = {"chat_template_kwargs": {"enable_thinking": False}}
+
 _FILTER_PROMPT = ChatPromptTemplate.from_template(
     "Is the following question related to Sherlock Holmes stories, characters, or plots? "
     "Answer with a single word: yes or no.\n\nQuestion: {question}"
@@ -48,7 +53,7 @@ _ANSWER_PROMPT = ChatPromptTemplate.from_template(
 
 
 def _filter(state: RAGState) -> RAGState:
-    llm = ChatOpenAI(model=LLM_MODEL_ALIAS, base_url=LLM_HOST, api_key="sk-local")
+    llm = ChatOpenAI(model=LLM_MODEL_ALIAS, base_url=LLM_HOST, api_key="sk-local", extra_body=_NO_THINK)
     chain = _FILTER_PROMPT | llm | StrOutputParser()
     verdict = chain.invoke({"question": state["question"]}).strip().lower()
     if not verdict.startswith("yes"):
@@ -65,14 +70,14 @@ def _rewrite(state: RAGState) -> RAGState:
     history = state.get("history", "(none)") or "(none)"
     if history == "(none)":
         return {"standalone_question": state["question"]}
-    llm = ChatOpenAI(model=LLM_MODEL_ALIAS, base_url=LLM_HOST, api_key="sk-local")
+    llm = ChatOpenAI(model=LLM_MODEL_ALIAS, base_url=LLM_HOST, api_key="sk-local", extra_body=_NO_THINK)
     chain = _REWRITE_PROMPT | llm | StrOutputParser()
     standalone = chain.invoke({"history": history, "question": state["question"]})
     return {"standalone_question": standalone}
 
 
 def _hypothesize(state: RAGState) -> RAGState:
-    llm = ChatOpenAI(model=LLM_MODEL_ALIAS, base_url=LLM_HOST, api_key="sk-local")
+    llm = ChatOpenAI(model=LLM_MODEL_ALIAS, base_url=LLM_HOST, api_key="sk-local", extra_body=_NO_THINK)
     chain = _HYDE_PROMPT | llm | StrOutputParser()
     hypothesis = chain.invoke({"question": state["standalone_question"]})
     return {"hypothesis": hypothesis}
@@ -143,12 +148,13 @@ def stream_answer(
     question: str,
     compiled_graph,
     thread_id: str,
+    enable_thinking: bool = True,
 ) -> Generator[StreamEvent, None, None]:
     """Yield typed events from a single graph run:
       ("standalone", str)       — rewritten self-contained question
       ("hypothesis", str)       — HyDE hypothetical answer used for retrieval
       ("docs", list[Document])  — retrieved chunks
-      ("thinking", str)         — one reasoning token at a time
+      ("thinking", str)         — one reasoning token at a time (only if enable_thinking=True)
       ("token", str)            — one answer token at a time
     """
     config = {"configurable": {"thread_id": thread_id}}
@@ -184,11 +190,13 @@ def stream_answer(
         f"Question: {question}"
     )
     client = OpenAI(base_url=LLM_HOST, api_key="sk-local")
+    extra = {"chat_template_kwargs": {"enable_thinking": enable_thinking}}
     full_answer = ""
     for chunk in client.chat.completions.create(
         model=LLM_MODEL_ALIAS,
         messages=[{"role": "user", "content": prompt}],
         stream=True,
+        extra_body=extra,
     ):
         delta = chunk.choices[0].delta
         if getattr(delta, "reasoning_content", None):
