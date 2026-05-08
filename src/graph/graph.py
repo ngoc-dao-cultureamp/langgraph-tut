@@ -8,9 +8,9 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from openai import OpenAI
 
-from llm import StreamEvent, stream_free  # noqa: F401 — re-exported for callers
-from retriever import search
-from state import RAGState
+from graph.llm import StreamEvent, stream_free  # noqa: F401 — re-exported for callers
+from graph.state import RAGState
+from rag.retriever import search
 
 LLM_HOST = os.environ.get("LLM_HOST")
 LLM_MODEL_ALIAS = os.environ.get("LLM_MODEL_ALIAS")

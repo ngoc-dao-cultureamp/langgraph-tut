@@ -19,7 +19,7 @@ import argparse
 import sys
 import uuid
 
-from graph import build_graph, stream_answer
+from graph.graph import build_graph, stream_answer
 
 RESET  = "\033[0m"
 DIM    = "\033[2m"

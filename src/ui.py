@@ -3,9 +3,9 @@ import uuid
 
 import streamlit as st
 
-from graph import build_graph, stream_answer, stream_free
-from ingest import run as ingest_run
-from retriever import list_all, search
+from graph.graph import build_graph, stream_answer, stream_free
+from rag.ingest import run as ingest_run
+from rag.retriever import list_all, search
 
 LLM_HOST = os.environ.get("LLM_HOST")
 LLM_MODEL_ALIAS = os.environ.get("LLM_MODEL_ALIAS")

@@ -41,7 +41,7 @@ Starts PostgreSQL, two llama-server instances, and Open WebUI. On first run, Pos
 ### 5. Ingest documents
 
 ```bash
-uv run python src/ingest.py
+uv run python src/rag/ingest.py
 ```
 
 ## Linting

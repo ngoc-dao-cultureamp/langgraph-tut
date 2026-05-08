@@ -2,7 +2,7 @@ import logging
 
 from langchain_core.documents import Document
 
-from store import get_vector_store
+from rag.store import get_vector_store
 
 logger = logging.getLogger(__name__)
 

@@ -14,7 +14,7 @@ from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 
-from graph import build_graph, stream_answer
+from graph.graph import build_graph, stream_answer
 
 LLM_HOST = os.environ.get("LLM_HOST")
 LLM_MODEL_ALIAS = os.environ.get("LLM_MODEL_ALIAS")

@@ -13,7 +13,7 @@ Press Ctrl-C or Ctrl-D to exit.
 import argparse
 import sys
 
-from llm import stream_free
+from graph.llm import stream_free
 
 RESET = "\033[0m"
 DIM   = "\033[2m"

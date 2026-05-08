@@ -7,7 +7,7 @@ from pathlib import Path
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from store import get_vector_store
+from rag.store import get_vector_store
 
 BOOKS_DIR = Path(os.environ["BOOKS_DIR"])
 
