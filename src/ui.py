@@ -2,9 +2,8 @@ import os
 import uuid
 
 import streamlit as st
-from langchain_openai import ChatOpenAI
 
-from graph import build_graph, stream_answer
+from graph import build_graph, stream_answer, stream_free
 from ingest import run as ingest_run
 from retriever import list_all, search
 
@@ -95,6 +94,9 @@ with chat_tab:
     with st.container(height=500):
         for msg in st.session_state.messages:
             with st.chat_message(msg["role"]):
+                if msg.get("thinking"):
+                    with st.expander("Thinking…", expanded=False):
+                        st.markdown(msg["thinking"])
                 st.markdown(msg["content"])
 
     if question := st.chat_input("Ask about Sherlock Holmes stories...", key="rag_input"):
@@ -104,25 +106,37 @@ with chat_tab:
         hypothesis = ""
         documents = []
         streamed = ""
+        thinking_text = ""
 
         with st.chat_message("assistant"):
+            think_expander = None
+            think_placeholder = None
             placeholder = st.empty()
             try:
-                with st.spinner("Thinking..."):
-                    for event, payload in stream_answer(question, _graph(), st.session_state.thread_id):
-                        if event == "standalone":
-                            standalone = payload
-                        elif event == "hypothesis":
-                            hypothesis = payload
-                        elif event == "docs":
-                            documents = payload
-                        elif event == "token":
-                            streamed += payload
-                            placeholder.markdown(streamed)
+                for event, payload in stream_answer(question, _graph(), st.session_state.thread_id):
+                    if event == "standalone":
+                        standalone = payload
+                    elif event == "hypothesis":
+                        hypothesis = payload
+                    elif event == "docs":
+                        documents = payload
+                    elif event == "thinking":
+                        thinking_text += payload
+                        if think_expander is None:
+                            think_expander = st.expander("Thinking…", expanded=True)
+                            think_placeholder = think_expander.empty()
+                        think_placeholder.markdown(thinking_text)
+                    elif event == "token":
+                        streamed += payload
+                        placeholder.markdown(streamed)
             except Exception as exc:
                 placeholder.error(f"Error: {exc}")
 
-        st.session_state.messages.append({"role": "assistant", "content": streamed})
+        st.session_state.messages.append({
+            "role": "assistant",
+            "content": streamed,
+            "thinking": thinking_text,
+        })
         st.session_state.last_debug = {
             "standalone": standalone,
             "hypothesis": hypothesis,
@@ -149,29 +163,43 @@ with free_chat_tab:
     with st.container(height=500):
         for msg in st.session_state.free_messages:
             with st.chat_message(msg["role"]):
+                if msg.get("thinking"):
+                    with st.expander("Thinking…", expanded=False):
+                        st.markdown(msg["thinking"])
                 st.markdown(msg["content"])
 
     if question := st.chat_input("Ask anything...", key="free_input"):
         st.session_state.free_messages.append({"role": "user", "content": question})
 
-        history = [
-            {"role": m["role"], "content": m["content"]}
-            for m in st.session_state.free_messages[:-1]
-        ]
-
         with st.chat_message("assistant"):
+            think_expander = None
+            think_placeholder = None
             placeholder = st.empty()
             streamed = ""
+            thinking_text = ""
             try:
-                llm = ChatOpenAI(model=LLM_MODEL_ALIAS, base_url=LLM_HOST, api_key="sk-local", streaming=True)
-                for chunk in llm.stream(history + [{"role": "user", "content": question}]):
-                    if chunk.content:
-                        streamed += chunk.content
+                messages = [
+                    {"role": m["role"], "content": m["content"]}
+                    for m in st.session_state.free_messages
+                ]
+                for event, payload in stream_free(messages):
+                    if event == "thinking":
+                        thinking_text += payload
+                        if think_expander is None:
+                            think_expander = st.expander("Thinking…", expanded=True)
+                            think_placeholder = think_expander.empty()
+                        think_placeholder.markdown(thinking_text)
+                    elif event == "token":
+                        streamed += payload
                         placeholder.markdown(streamed)
             except Exception as exc:
                 placeholder.error(f"Error: {exc}")
 
-        st.session_state.free_messages.append({"role": "assistant", "content": streamed})
+        st.session_state.free_messages.append({
+            "role": "assistant",
+            "content": streamed,
+            "thinking": thinking_text,
+        })
         st.rerun()
 
 with all_tab:

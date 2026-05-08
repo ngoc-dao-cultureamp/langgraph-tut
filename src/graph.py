@@ -7,7 +7,9 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
+from openai import OpenAI
 
+from llm import StreamEvent, stream_free  # re-export for callers that import from graph
 from retriever import search
 from state import RAGState
 
@@ -117,7 +119,7 @@ def build_graph():
     g.add_edge("hypothesize", "retrieve")
     g.add_edge("retrieve", "generate")
     g.add_edge("generate", END)
-    return g.compile(checkpointer=MemorySaver())
+    return g.compile(checkpointer=MemorySaver(), interrupt_before=["generate"])
 
 
 type StreamEvent = tuple[str, list[Document]] | tuple[str, str]
@@ -148,30 +150,54 @@ def stream_answer(
       ("standalone", str)       — rewritten self-contained question
       ("hypothesis", str)       — HyDE hypothetical answer used for retrieval
       ("docs", list[Document])  — retrieved chunks
-      ("token", str)            — one LLM output token at a time
+      ("thinking", str)         — one reasoning token at a time
+      ("token", str)            — one answer token at a time
     """
     config = {"configurable": {"thread_id": thread_id}}
     history = _build_history_str(compiled_graph, config)
 
-    for mode, data in compiled_graph.stream(
+    documents = []
+
+    for _mode, data in compiled_graph.stream(
         {"question": question, "history": history},
         config=config,
-        stream_mode=["messages", "updates"],
+        stream_mode="updates",
     ):
-        if mode == "updates":
-            if "filter" in data and data["filter"].get("answer"):
-                yield ("token", data["filter"]["answer"])
-            elif "rewrite" in data:
-                yield ("standalone", data["rewrite"]["standalone_question"])
-            elif "hypothesize" in data:
-                yield ("hypothesis", data["hypothesize"]["hypothesis"])
-            elif "retrieve" in data:
-                yield ("docs", data["retrieve"]["documents"])
-        elif mode == "messages":
-            chunk, metadata = data
-            if (
-                metadata.get("langgraph_node") == "generate"
-                and hasattr(chunk, "content")
-                and chunk.content
-            ):
-                yield ("token", chunk.content)
+        if "filter" in data and data["filter"].get("answer"):
+            # Off-topic: answer already stored in graph state, just surface it.
+            yield ("token", data["filter"]["answer"])
+            return
+        elif "rewrite" in data:
+            yield ("standalone", data["rewrite"]["standalone_question"])
+        elif "hypothesize" in data:
+            yield ("hypothesis", data["hypothesize"]["hypothesis"])
+        elif "retrieve" in data:
+            documents = data["retrieve"]["documents"]
+            yield ("docs", documents)
+
+    # Graph is now paused at interrupt_before=["generate"].
+    # Stream generate directly with the openai client so reasoning_content is preserved.
+    context = "\n\n".join(doc.page_content for doc in documents)
+    prompt = (
+        "You are a helpful assistant. Answer the question using only the context below. "
+        "If the answer is not in the context, say you don't know.\n\n"
+        f"Conversation history:\n{history}\n\n"
+        f"Context:\n{context}\n\n"
+        f"Question: {question}"
+    )
+    client = OpenAI(base_url=LLM_HOST, api_key="sk-local")
+    full_answer = ""
+    for chunk in client.chat.completions.create(
+        model=LLM_MODEL_ALIAS,
+        messages=[{"role": "user", "content": prompt}],
+        stream=True,
+    ):
+        delta = chunk.choices[0].delta
+        if getattr(delta, "reasoning_content", None):
+            yield ("thinking", delta.reasoning_content)
+        if delta.content:
+            full_answer += delta.content
+            yield ("token", delta.content)
+
+    # Store the answer in graph state so _build_history_str works for future turns.
+    compiled_graph.update_state(config, {"answer": full_answer})
