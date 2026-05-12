@@ -10,7 +10,8 @@ processes:
         psql -U postgres -d ragdb -c 'CREATE EXTENSION IF NOT EXISTS vector;'
         pg_ctl stop -D "$PGDATA" -w
       fi
-      exec postgres -D "$PGDATA"
+      # Use PGDATA for both data directory and socket directory
+      exec postgres -D "$PGDATA" -k "$PGDATA"
     readiness_probe:
       exec:
         command: "pg_isready -h localhost -U postgres -d ragdb"
