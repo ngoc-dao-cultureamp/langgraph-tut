@@ -1,5 +1,5 @@
 {
-  description = "PostgreSQL 17 with pgvector";
+  description = "PostgreSQL 17 with pgvector, llama.cpp with CUDA";
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
   outputs = { self, nixpkgs }:
@@ -12,9 +12,17 @@
       ];
     in {
       packages = forAllSystems (system:
-        let pkgs = nixpkgs.legacyPackages.${system};
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+          pkgsCuda = import nixpkgs {
+            inherit system;
+            config = { allowUnfree = true; cudaSupport = true; };
+          };
         in {
-          default = pkgs.postgresql_17.withPackages (p: [ p.pgvector ]);
+          pgvector = pkgs.postgresql_17.withPackages (p: [ p.pgvector ]);
+          llama-cpp = if system == "x86_64-linux"
+            then pkgsCuda.llama-cpp
+            else pkgs.llama-cpp;
         }
       );
     };

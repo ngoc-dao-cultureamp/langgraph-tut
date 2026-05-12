@@ -2,8 +2,8 @@
   "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.17.2/.schema/devbox.schema.json",
   "packages": [
     "python@3.12",
-    "path:.#default",
-    "llama-cpp@latest",
+    "path:.#pgvector",
+    "path:.#llama-cpp",
     "uv@latest"
   ],
   "shell": {
