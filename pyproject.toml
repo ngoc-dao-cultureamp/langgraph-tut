@@ -11,10 +11,27 @@ dependencies = [
     "streamlit>=1.45",
     "huggingface-hub[cli]>=1.14.0",
     "langchain-text-splitters>=1.1.2",
+    "llama-cpp-python[server]>=0.3",
 ]
 
 [tool.uv]
 package = false
+
+[[tool.uv.index]]
+name = "llama-cpp-cuda"
+url = "https://abetlen.github.io/llama-cpp-python/whl/cu130"
+explicit = true
+
+[[tool.uv.index]]
+name = "llama-cpp-metal"
+url = "https://abetlen.github.io/llama-cpp-python/whl/metal"
+explicit = true
+
+[tool.uv.sources]
+llama-cpp-python = [
+  { index = "llama-cpp-cuda", marker = "sys_platform == 'linux'" },
+  { index = "llama-cpp-metal", marker = "sys_platform == 'darwin'" },
+]
 
 [tool.ruff]
 src = ["src"]
