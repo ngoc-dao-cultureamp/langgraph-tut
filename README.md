@@ -116,6 +116,8 @@ Runs a fixed set of Sherlock Holmes questions through the full RAG pipeline and 
 
 Both expose an OpenAI-compatible API (`/v1`). `llama-chat` also serves a built-in chat UI at **http://localhost:8080** — open it in a browser for quick ad-hoc prompts without the RAG pipeline.
 
+The server runs via `llama-cpp-python` (`python -m llama_cpp.server`), which bundles llama.cpp as a Python wheel. On Linux it installs a CUDA-enabled wheel; on Mac, a Metal-enabled wheel. This avoids managing a separate llama.cpp binary per platform.
+
 ## Connection details
 
 | Setting | Value |
@@ -132,7 +134,7 @@ Both expose an OpenAI-compatible API (`/v1`). `llama-chat` also serves a built-i
 |---|---|
 | Python + app tooling | Devbox |
 | PostgreSQL + pgvector | Devbox (Nix flake) |
-| LLM inference (local) | llama.cpp |
+| LLM inference (local) | llama-cpp-python |
 | LLM inference (AWS) | AWS Bedrock |
 | Vector store | pgvector |
 | Graph / RAG logic | LangGraph |
