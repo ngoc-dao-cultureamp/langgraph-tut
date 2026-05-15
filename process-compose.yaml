@@ -5,10 +5,10 @@ processes:
     command: |
       if [ ! -f "$PGDATA/PG_VERSION" ]; then
         initdb --pgdata="$PGDATA" --username=postgres
-        pg_ctl start -D "$PGDATA" -l "$PGDATA/postgres.log" -w
-        createdb -U postgres ragdb
-        psql -U postgres -d ragdb -c 'CREATE EXTENSION IF NOT EXISTS vector;'
-        pg_ctl stop -D "$PGDATA" -w
+        PGHOST="$PGDATA" pg_ctl start -D "$PGDATA" -l "$PGDATA/postgres.log" -w -o "-k $PGDATA"
+        PGHOST="$PGDATA" createdb -U postgres ragdb
+        PGHOST="$PGDATA" psql -U postgres -d ragdb -c 'CREATE EXTENSION IF NOT EXISTS vector;'
+        PGHOST="$PGDATA" pg_ctl stop -D "$PGDATA" -w
       fi
       # Use PGDATA for both data directory and socket directory
       exec postgres -D "$PGDATA" -k "$PGDATA"
@@ -20,23 +20,23 @@ processes:
       failure_threshold: 10
 
   llama-chat:
-    command: "uv run python -m llama_cpp.server --model $MODELS_DIR/$LLM_FILE --model_alias $LLM_MODEL_ALIAS --port 8080 --n_ctx 49152 --n_gpu_layers 99"
+    command: "uv run env LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH python -m llama_cpp.server --model $MODELS_DIR/$LLM_FILE --model_alias $LLM_MODEL_ALIAS --port 8080 --n_ctx 4096 --n_gpu_layers 37"
     readiness_probe:
       http_get:
         host: localhost
         port: 8080
-        path: /health
+        path: /v1/models
       initial_delay_seconds: 10
       period_seconds: 5
       failure_threshold: 30
 
   llama-embed:
-    command: "uv run python -m llama_cpp.server --model $MODELS_DIR/$EMBED_FILE --model_alias $EMBED_MODEL_ALIAS --port 8081 --embedding --pooling_type mean --n_gpu_layers 99"
+    command: "uv run env LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH python -m llama_cpp.server --model $MODELS_DIR/$EMBED_FILE --model_alias $EMBED_MODEL_ALIAS --port 8081 --embedding true --n_gpu_layers 99"
     readiness_probe:
       http_get:
         host: localhost
         port: 8081
-        path: /health
+        path: /v1/models
       initial_delay_seconds: 10
       period_seconds: 5
       failure_threshold: 30
