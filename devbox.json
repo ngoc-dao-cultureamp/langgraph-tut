@@ -27,12 +27,7 @@
     "scripts": {
       "db-reset": [
         "pg_ctl stop -D $PGDATA || true",
-        "rm -rf $PGDATA",
-        "initdb --pgdata=$PGDATA --username=postgres",
-        "pg_ctl start -D $PGDATA -l $PGDATA/postgres.log",
-        "createdb -U postgres ragdb",
-        "psql -U postgres -d ragdb -c 'CREATE EXTENSION IF NOT EXISTS vector;'",
-        "pg_ctl stop -D $PGDATA"
+        "rm -rf $PGDATA"
       ],
       "model-pull": ["uv run hf download $LLM_REPO $LLM_FILE --local-dir $MODELS_DIR", "uv run hf download $EMBED_REPO $EMBED_FILE --local-dir $MODELS_DIR"],
       "eval": ["uv run python src/cli/eval.py"],
