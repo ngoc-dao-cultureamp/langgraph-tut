@@ -21,7 +21,8 @@
       "export LLM_MODEL_ALIAS=qwen3.6-35b-a3b",
       "export EMBED_REPO=nomic-ai/nomic-embed-text-v1.5-GGUF",
       "export EMBED_FILE=nomic-embed-text-v1.5.Q8_0.gguf",
-      "export EMBED_MODEL_ALIAS=nomic-embed-text-v1.5"
+      "export EMBED_MODEL_ALIAS=nomic-embed-text-v1.5",
+      "export MODELS_DIR=\"$HOME/models\""
     ],
     "scripts": {
       "db-reset": [
@@ -33,7 +34,7 @@
         "psql -U postgres -d ragdb -c 'CREATE EXTENSION IF NOT EXISTS vector;'",
         "pg_ctl stop -D $PGDATA"
       ],
-      "model-pull": ["uv run hf download $LLM_REPO $LLM_FILE --local-dir models/", "uv run hf download $EMBED_REPO $EMBED_FILE --local-dir models/"],
+      "model-pull": ["uv run hf download $LLM_REPO $LLM_FILE --local-dir $MODELS_DIR", "uv run hf download $EMBED_REPO $EMBED_FILE --local-dir $MODELS_DIR"],
       "eval": ["uv run python src/cli/eval.py"],
       "lint": ["uv run ruff check src/"],
       "fmt": ["uv run ruff format src/"],

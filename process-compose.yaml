@@ -20,7 +20,7 @@ processes:
       failure_threshold: 10
 
   llama-chat:
-    command: "uv run python -m llama_cpp.server --model models/$LLM_FILE --model_alias $LLM_MODEL_ALIAS --port 8080 --n_ctx 49152 --n_gpu_layers 99"
+    command: "uv run python -m llama_cpp.server --model $MODELS_DIR/$LLM_FILE --model_alias $LLM_MODEL_ALIAS --port 8080 --n_ctx 49152 --n_gpu_layers 99"
     readiness_probe:
       http_get:
         host: localhost
@@ -31,7 +31,7 @@ processes:
       failure_threshold: 30
 
   llama-embed:
-    command: "uv run python -m llama_cpp.server --model models/$EMBED_FILE --model_alias $EMBED_MODEL_ALIAS --port 8081 --embedding --pooling_type mean --n_gpu_layers 99"
+    command: "uv run python -m llama_cpp.server --model $MODELS_DIR/$EMBED_FILE --model_alias $EMBED_MODEL_ALIAS --port 8081 --embedding --pooling_type mean --n_gpu_layers 99"
     readiness_probe:
       http_get:
         host: localhost
