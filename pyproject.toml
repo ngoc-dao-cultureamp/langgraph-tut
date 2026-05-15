@@ -9,7 +9,7 @@ dependencies = [
     "langchain-postgres>=0.0.12",
     "psycopg[binary]>=3.2",
     "streamlit>=1.45",
-    "huggingface-hub[cli]>=1.14.0",
+    "huggingface-hub[cli]>=1.15.0",
     "langchain-text-splitters>=1.1.2",
     "llama-cpp-python[server]>=0.3",
 ]
