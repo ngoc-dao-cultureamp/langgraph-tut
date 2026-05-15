@@ -7,7 +7,7 @@
 | Package management | Devbox (Nix) | Reproducible environment across machines |
 | Python deps | uv | Fast, standard `pyproject.toml`, generates lockfile |
 | PostgreSQL + pgvector | Devbox Nix flake | pgvector must be compiled into PostgreSQL; Nix flake handles this |
-| LLM inference | llama-cpp-python | llama.cpp bundled as a Python wheel; handles cross-platform GPU automatically |
+| LLM inference | llama-server (self-compiled llama.cpp) | Full control over build flags; CUDA support compiled in at build time |
 | Vector store | pgvector | PostgreSQL extension; no separate vector DB needed |
 | Graph / RAG logic | LangGraph | Stateful agent graphs with explicit control flow |
 | UI | Streamlit | Richer than Chainlit once you need buttons alongside chat |
@@ -18,18 +18,17 @@ Ollama wraps llama.cpp but adds a daemon layer that manages model loading behind
 
 Both expose an OpenAI-compatible API, so the Python code (`langchain-openai`) is the same either way.
 
-## Why llama-cpp-python instead of the standalone llama.cpp binary
+## Why self-compiled llama.cpp instead of llama-cpp-python
 
-`llama-cpp-python` is a Python binding for llama.cpp that also bundles `llama-server`. It is distributed as platform-specific wheels on a custom index (`abetlen.github.io/llama-cpp-python/whl/`):
+We use the `llama-server` binary from a self-compiled llama.cpp build rather than the `llama-cpp-python` Python wheel. The main reason is **CUDA support**:
 
-- **Linux**: CUDA-enabled wheel (e.g. `cu124`) — no need to build from source or trust a third-party PPA
-- **Mac**: Metal-enabled wheel — GPU acceleration via Apple's Metal framework
+- The `llama-cpp-python` wheels on the custom index (`abetlen.github.io/llama-cpp-python/whl/`) lag behind upstream llama.cpp and are not consistently published for every CUDA version.
+- The standalone `llama-server` binaries in the llama.cpp GitHub releases are also inconsistently built for CUDA.
+- Building from source is the only reliable way to get a CUDA-enabled binary that matches your driver and toolkit.
 
-The alternative — downloading the standalone `llama-server` binary from the llama.cpp GitHub releases — works fine but means managing a separate binary per platform outside of `uv`/`pyproject.toml`. The Python wheel keeps everything in one dependency manager.
+The `llama-server` binary exposes an OpenAI-compatible HTTP API (`/v1`) — identical to what `llama-cpp-python` served. No Python code changes are needed; the LangChain `ChatOpenAI` client talks to the same endpoints.
 
-The `[server]` extra installs the HTTP server dependencies so `python -m llama_cpp.server` is available. The API it exposes is OpenAI-compatible, identical to the standalone `llama-server`.
-
-**CUDA version compatibility:** Nvidia drivers are backward-compatible. A wheel built for CUDA 12.4 runs on any driver that supports CUDA 12.4 or later. Check your max supported version with `nvidia-smi` (shown top-right as "CUDA Version"). Use the highest wheel version that exists on the index, not necessarily the latest CUDA release.
+The path to the binary is configured in `local.env` (gitignored) via `LLAMA_SERVER_BIN`. `devbox shell` aborts with a clear error if this variable is not set.
 
 ## AWS deployment (future)
 

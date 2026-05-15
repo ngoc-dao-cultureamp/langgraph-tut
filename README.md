@@ -31,7 +31,16 @@ into `~/models/`.
 
 `$LLM_MODEL_ALIAS` runs well on both M3 Max (36GB) and RTX 3090 (24GB VRAM).
 
-### 4. Start services
+### 4. Configure llama-server path
+
+```bash
+cp local.env.example local.env
+# edit local.env and set LLAMA_SERVER_BIN to your compiled llama-server binary
+```
+
+See [Building llama.cpp](#building-llamacpp) for how to compile it.
+
+### 5. Start services
 
 ```bash
 devbox services up
@@ -39,11 +48,73 @@ devbox services up
 
 Starts PostgreSQL, two llama-server instances, and Open WebUI. On first run, PostgreSQL is automatically initialised and the `vector` extension enabled.
 
-### 5. Ingest documents
+### 6. Ingest documents
 
 ```bash
 uv run python src/rag/ingest.py
 ```
+
+## Building llama.cpp
+
+We build llama.cpp from source because there is no reliable, up-to-date source of pre-built GPU-enabled binaries: the llama-cpp-python wheels lag behind upstream and the GitHub release binaries are inconsistently published for CUDA.
+
+### Linux — NVIDIA CUDA
+
+**Prerequisites:** CUDA toolkit, `cmake`, `gcc`/`g++`.
+
+**CUDA version compatibility:** Nvidia drivers are backward-compatible. A toolkit built for CUDA 12.x runs on any driver that supports CUDA 12.x or later. Check your driver's maximum supported CUDA version with `nvidia-smi` (shown top-right as "CUDA Version"), then install the highest toolkit version that does not exceed it.
+
+#### Install CUDA toolkit on Ubuntu
+
+```bash
+# Add the NVIDIA package repository (replace 2404 with your Ubuntu version, e.g. 2204)
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
+sudo dpkg -i cuda-keyring_1.1-1_all.deb
+sudo apt update
+
+# Install the toolkit (adjust the version suffix as needed)
+sudo apt install -y cuda-toolkit-12-8
+```
+
+After installation, add the CUDA binaries to your PATH (add to `~/.bashrc` or `~/.zshrc`):
+
+```bash
+export PATH=/usr/local/cuda/bin:$PATH
+export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+```
+
+Verify: `nvcc --version`
+
+#### Build
+
+```bash
+git clone https://github.com/ggml-org/llama.cpp
+cmake -B llama.cpp/build -S llama.cpp -DGGML_CUDA=ON
+cmake --build llama.cpp/build --config Release -j$(nproc)
+```
+
+### macOS — Apple Silicon (Metal)
+
+**Prerequisites:** Xcode Command Line Tools (`xcode-select --install`), `cmake`. Metal acceleration is enabled by default on Apple Silicon — no extra flags needed.
+
+```bash
+git clone https://github.com/ggml-org/llama.cpp
+cmake -B llama.cpp/build -S llama.cpp
+cmake --build llama.cpp/build --config Release -j$(sysctl -n hw.logicalcpu)
+```
+
+### After building
+
+Set `LLAMA_SERVER_BIN` in `local.env` to the compiled binary:
+
+```bash
+# linux
+LLAMA_SERVER_BIN=/path/to/llama.cpp/build/bin/llama-server
+# macos
+LLAMA_SERVER_BIN=/path/to/llama.cpp/build/bin/llama-server
+```
+
+The binary path is the same on both platforms; only the build flags differ.
 
 ## Linting
 
@@ -117,7 +188,9 @@ Runs a fixed set of Sherlock Holmes questions through the full RAG pipeline and 
 
 Both expose an OpenAI-compatible API (`/v1`). `llama-chat` also serves a built-in chat UI at **http://localhost:8080** — open it in a browser for quick ad-hoc prompts without the RAG pipeline.
 
-The server runs via `llama-cpp-python` (`python -m llama_cpp.server`), which bundles llama.cpp as a Python wheel. On Linux it installs a CUDA-enabled wheel; on Mac, a Metal-enabled wheel. This avoids managing a separate llama.cpp binary per platform.
+The server is the `llama-server` binary from a self-compiled llama.cpp build. The path to the binary is set via `LLAMA_SERVER_BIN` in `local.env` (gitignored). See `local.env.example` for the format.
+
+We compile llama.cpp from source because there is no reliable, up-to-date source of pre-built CUDA-enabled binaries: the llama-cpp-python wheels lag behind upstream and the GitHub release binaries are inconsistently published for CUDA.
 
 ## Connection details
 
@@ -135,7 +208,7 @@ The server runs via `llama-cpp-python` (`python -m llama_cpp.server`), which bun
 |---|---|
 | Python + app tooling | Devbox |
 | PostgreSQL + pgvector | Devbox (Nix flake) |
-| LLM inference (local) | llama-cpp-python |
+| LLM inference (local) | llama-server (self-compiled llama.cpp) |
 | LLM inference (AWS) | AWS Bedrock |
 | Vector store | pgvector |
 | Graph / RAG logic | LangGraph |

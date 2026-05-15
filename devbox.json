@@ -7,6 +7,9 @@
   ],
   "shell": {
     "init_hook": [
+      "[ -f \"$PWD/local.env\" ] && . \"$PWD/local.env\"",
+      ": ${LLAMA_SERVER_BIN:?LLAMA_SERVER_BIN must be set in local.env}",
+      "export LLAMA_SERVER_BIN",
       "export PYTHONPATH=\"$PWD/src\"",
       "export BOOKS_DIR=\"$PWD/sherlock_holmes\"",
       "export PGDATA=\"$PWD/.pgdata\"",

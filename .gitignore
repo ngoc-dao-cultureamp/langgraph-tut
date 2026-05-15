@@ -5,5 +5,6 @@ __pycache__/
 *.pyc
 *.pyo
 .webui_secret_key
+local.env
 
 models/
