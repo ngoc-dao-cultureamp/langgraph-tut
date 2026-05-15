@@ -20,7 +20,7 @@ def _graph():
 def _db_status() -> str | None:
     """Return None if DB is healthy, or an error message string."""
     try:
-        from store import check_connection
+        from rag.store import check_connection
         check_connection()
         return None
     except RuntimeError as exc:
